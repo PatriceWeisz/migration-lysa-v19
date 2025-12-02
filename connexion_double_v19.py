@@ -75,18 +75,18 @@ class ConnexionDoubleV19:
                 if self.source_uid:
                     self.source_models = self._creer_proxy(url, 'object')
                     version = self.source_common.version()
-                    print(f"✓ Connexion SOURCE réussie - UID: {self.source_uid}")
-                    print(f"✓ Version Odoo: {version.get('server_version', 'N/A')}")
+                    print(f"OK Connexion SOURCE reussie - UID: {self.source_uid}")
+                    print(f"OK Version Odoo: {version.get('server_version', 'N/A')}")
                     return True
                 else:
-                    print("✗ Échec de l'authentification SOURCE")
+                    print("ERREUR Echec de l'authentification SOURCE")
                     
             except Exception as e:
                 self.stats['source_errors'] += 1
-                print(f"✗ Erreur connexion SOURCE (tentative {tentative + 1}): {e}")
+                print(f"ERREUR Connexion SOURCE (tentative {tentative + 1}): {e}")
                 
                 if tentative < max_retry - 1:
-                    print(f"⏳ Nouvelle tentative dans {retry_delay} secondes...")
+                    print(f"ATTENTE Nouvelle tentative dans {retry_delay} secondes...")
                     time.sleep(retry_delay)
                     
         return False
@@ -120,24 +120,24 @@ class ConnexionDoubleV19:
                 if self.dest_uid:
                     self.dest_models = self._creer_proxy(url, 'object')
                     version = self.dest_common.version()
-                    print(f"✓ Connexion DESTINATION réussie - UID: {self.dest_uid}")
-                    print(f"✓ Version Odoo: {version.get('server_version', 'N/A')}")
+                    print(f"OK Connexion DESTINATION reussie - UID: {self.dest_uid}")
+                    print(f"OK Version Odoo: {version.get('server_version', 'N/A')}")
                     
-                    # Vérifier que c'est bien v19
+                    # Verifier que c'est bien v19
                     version_str = version.get('server_version', '')
                     if '19.0' not in version_str:
-                        print(f"⚠️  ATTENTION : Version attendue v19, version détectée: {version_str}")
+                        print(f"ATTENTION : Version attendue v19, version detectee: {version_str}")
                     
                     return True
                 else:
-                    print("✗ Échec de l'authentification DESTINATION")
+                    print("ERREUR Echec de l'authentification DESTINATION")
                     
             except Exception as e:
                 self.stats['dest_errors'] += 1
-                print(f"✗ Erreur connexion DESTINATION (tentative {tentative + 1}): {e}")
+                print(f"ERREUR Connexion DESTINATION (tentative {tentative + 1}): {e}")
                 
                 if tentative < max_retry - 1:
-                    print(f"⏳ Nouvelle tentative dans {retry_delay} secondes...")
+                    print(f"ATTENTE Nouvelle tentative dans {retry_delay} secondes...")
                     time.sleep(retry_delay)
                     
         return False
@@ -148,10 +148,10 @@ class ConnexionDoubleV19:
         dest_ok = self.connecter_destination()
         
         print("\n" + "=" * 70)
-        print("RÉSUMÉ DES CONNEXIONS")
+        print("RESUME DES CONNEXIONS")
         print("=" * 70)
-        print(f"Base SOURCE (v16) : {'✓ Connectée' if source_ok else '✗ Échec'}")
-        print(f"Base DEST (v19)   : {'✓ Connectée' if dest_ok else '✗ Échec'}")
+        print(f"Base SOURCE (v16) : {'OK Connectee' if source_ok else 'ERREUR Echec'}")
+        print(f"Base DEST (v19)   : {'OK Connectee' if dest_ok else 'ERREUR Echec'}")
         print("=" * 70)
         
         return source_ok and dest_ok

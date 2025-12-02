@@ -56,10 +56,10 @@ class MigrationProduits:
             with open(mapping_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 self.account_mapping = {int(k): v for k, v in data.items()}
-            logging.info(f"✓ Mapping des comptes chargé : {len(self.account_mapping)} comptes")
+            logging.info(f"OK Mapping des comptes chargé : {len(self.account_mapping)} comptes")
             return True
         else:
-            logging.warning("⚠️ Fichier account_mapping.json non trouvé")
+            logging.warning("ATTENTION Fichier account_mapping.json non trouvé")
             return False
     
     def sauvegarder_categorie_mapping(self):
@@ -67,7 +67,7 @@ class MigrationProduits:
         mapping_file = self.logs_dir / 'product_category_mapping.json'
         with open(mapping_file, 'w', encoding='utf-8') as f:
             json.dump(self.categorie_mapping, f, indent=2)
-        logging.info(f"✓ Mapping des catégories sauvegardé : {len(self.categorie_mapping)} catégories")
+        logging.info(f"OK Mapping des catégories sauvegardé : {len(self.categorie_mapping)} catégories")
     
     def migrer_categories(self):
         """Migre d'abord les catégories de produits"""
@@ -88,8 +88,8 @@ class MigrationProduits:
                    'property_account_expense_categ_id']
         )
         
-        print(f"✓ {len(categories_source)} catégories trouvées dans source")
-        logging.info(f"✓ {len(categories_source)} catégories trouvées dans source")
+        print(f"OK {len(categories_source)} categories trouvees dans source")
+        logging.info(f"OK {len(categories_source)} categories trouvees dans source")
         
         # Récupérer catégories destination
         categories_dest = self.conn.executer_destination(
@@ -102,8 +102,8 @@ class MigrationProduits:
         # Créer index par nom
         categories_dest_by_name = {c['name']: c['id'] for c in categories_dest}
         
-        print(f"✓ {len(categories_dest)} catégories existantes dans destination")
-        logging.info(f"✓ {len(categories_dest)} catégories existantes dans destination")
+        print(f"OK {len(categories_dest)} categories existantes dans destination")
+        logging.info(f"OK {len(categories_dest)} categories existantes dans destination")
         
         # Migrer chaque catégorie (ordre important : parents d'abord)
         categories_triees = sorted(categories_source, 
@@ -117,8 +117,8 @@ class MigrationProduits:
             if name in categories_dest_by_name:
                 dest_id = categories_dest_by_name[name]
                 self.categorie_mapping[source_id] = dest_id
-                print(f"  ✓ Catégorie existante : {name}")
-                logging.info(f"  Catégorie existante : {name} (ID: {dest_id})")
+                print(f"  OK Categorie existante : {name}")
+                logging.info(f"  Categorie existante : {name} (ID: {dest_id})")
                 continue
             
             # Préparer données
@@ -156,29 +156,29 @@ class MigrationProduits:
                 
                 self.categorie_mapping[source_id] = dest_id
                 categories_dest_by_name[name] = dest_id
-                print(f"  ✓ Catégorie créée : {name}")
-                logging.info(f"  ✓ Catégorie créée : {name} (ID: {dest_id})")
+                print(f"  OK Catégorie créée : {name}")
+                logging.info(f"  OK Catégorie créée : {name} (ID: {dest_id})")
                 
             except Exception as e:
-                print(f"  ✗ Erreur catégorie {name}: {e}")
-                logging.error(f"  ✗ Erreur création catégorie {name}: {e}")
+                print(f"  ERREUR Erreur catégorie {name}: {e}")
+                logging.error(f"  ERREUR Erreur création catégorie {name}: {e}")
         
         self.sauvegarder_categorie_mapping()
-        print(f"\n✅ Migration catégories terminée : {len(self.categorie_mapping)} catégories mappées")
-        logging.info(f"\n✓ Migration catégories terminée : {len(self.categorie_mapping)} catégories")
+        print(f"\nOK Migration catégories terminée : {len(self.categorie_mapping)} catégories mappées")
+        logging.info(f"\nOK Migration catégories terminée : {len(self.categorie_mapping)} catégories")
     
     def migrer_produits(self):
         """Migre les produits (templates et variantes)"""
         print("\n" + "="*70)
         print("MIGRATION DES PRODUITS")
         if TEST_MODE:
-            print(f"⚠️  MODE TEST : Limite à {TEST_LIMIT} produits")
+            print(f"ATTENTION  MODE TEST : Limite à {TEST_LIMIT} produits")
         print("="*70)
         
         logging.info("\n" + "="*70)
         logging.info("MIGRATION DES PRODUITS")
         if TEST_MODE:
-            logging.info(f"⚠️  MODE TEST : Limite à {TEST_LIMIT} produits")
+            logging.info(f"ATTENTION  MODE TEST : Limite à {TEST_LIMIT} produits")
         logging.info("="*70)
         
         # Récupérer produits source (product.template)
@@ -206,8 +206,8 @@ class MigrationProduits:
             )
         
         self.stats['total'] = len(produits_source)
-        print(f"✓ {self.stats['total']} produits à migrer")
-        logging.info(f"✓ {self.stats['total']} produits à migrer")
+        print(f"OK {self.stats['total']} produits à migrer")
+        logging.info(f"OK {self.stats['total']} produits à migrer")
         
         # Récupérer produits destination
         produits_dest = self.conn.executer_destination(
@@ -235,13 +235,13 @@ class MigrationProduits:
             dest_id = None
             if ref and ref in produits_dest_by_ref:
                 dest_id = produits_dest_by_ref[ref]
-                print(f"  ✓ Produit existant par référence (ID: {dest_id})")
+                print(f"  OK Produit existant par référence (ID: {dest_id})")
                 logging.info(f"  Produit existant par référence (ID: {dest_id})")
                 self.stats['existants'] += 1
                 continue
             elif name in produits_dest_by_name:
                 dest_id = produits_dest_by_name[name]
-                print(f"  ✓ Produit existant par nom (ID: {dest_id})")
+                print(f"  OK Produit existant par nom (ID: {dest_id})")
                 logging.info(f"  Produit existant par nom (ID: {dest_id})")
                 self.stats['existants'] += 1
                 continue
@@ -249,22 +249,14 @@ class MigrationProduits:
             # Préparer données
             # Mapper le type v16 → v19
             # v16: 'product' (stockable), 'consu' (consommable), 'service'
-            # v19: Le champ 'type' existe toujours mais avec des valeurs différentes
-            #      + nouveau champ 'detailed_type' pour produits stockables
+            # v19: type='consu' + is_storable=True pour les produits stockables
             product_type = prod.get('type', 'consu')
-            detailed_type = None
+            is_storable = False
             
-            # Conversion des types
+            # Si 'product' en v16 → 'consu' + is_storable=True en v19
             if product_type == 'product':
-                # Produit stockable en v16 → 'product' avec detailed_type='storable' en v19
-                product_type = 'product'
-                detailed_type = 'storable'
-            elif product_type == 'consu':
-                # Consommable → reste 'consu' mais on peut aussi mettre detailed_type='consumable'
                 product_type = 'consu'
-            elif product_type == 'service':
-                # Service → reste 'service'
-                product_type = 'service'
+                is_storable = True
             
             data = {
                 'name': name,
@@ -276,18 +268,9 @@ class MigrationProduits:
                 'active': prod.get('active', True),
             }
             
-            # Ajouter detailed_type si nécessaire (pour produits stockables)
-            if detailed_type:
-                data['detailed_type'] = detailed_type
-            
-            # Tracking (pour produits stockables)
-            if product_type == 'product':
-                # Utiliser le tracking de la source si disponible, sinon 'none' par défaut
-                tracking = prod.get('tracking', 'none')
-                # Valeurs valides : 'none', 'lot', 'serial'
-                if tracking not in ['none', 'lot', 'serial']:
-                    tracking = 'none'
-                data['tracking'] = tracking
+            # Ajouter is_storable si produit stockable
+            if is_storable:
+                data['is_storable'] = True
             
             # Référence
             if ref:
@@ -329,8 +312,8 @@ class MigrationProduits:
                     data
                 )
                 
-                print(f"  ✓ Produit créé (ID: {dest_id})")
-                logging.info(f"  ✓ Produit créé (ID: {dest_id})")
+                print(f"  OK Produit créé (ID: {dest_id})")
+                logging.info(f"  OK Produit créé (ID: {dest_id})")
                 self.stats['migres'] += 1
                 
                 if ref:
@@ -338,8 +321,8 @@ class MigrationProduits:
                 produits_dest_by_name[name] = dest_id
                 
             except Exception as e:
-                print(f"  ✗ Erreur création produit {name}: {e}")
-                logging.error(f"  ✗ Erreur création produit {name}: {e}")
+                print(f"  ERREUR Erreur création produit {name}: {e}")
+                logging.error(f"  ERREUR Erreur création produit {name}: {e}")
                 self.stats['erreurs'] += 1
     
     def afficher_stats(self):
@@ -357,7 +340,7 @@ class MigrationProduits:
             print(f"Taux de succès    : {taux:.1f}%")
         
         if TEST_MODE:
-            print(f"\n⚠️  MODE TEST : Seulement {TEST_LIMIT} produits traités")
+            print(f"\nATTENTION  MODE TEST : Seulement {TEST_LIMIT} produits traités")
             print("   Pour tout migrer, mettre TEST_MODE = False dans le script")
         
         logging.info("\n" + "="*70)
@@ -373,7 +356,7 @@ class MigrationProduits:
             logging.info(f"Taux de succès    : {taux:.1f}%")
         
         if TEST_MODE:
-            logging.info(f"\n⚠️  MODE TEST : Seulement {TEST_LIMIT} produits traités")
+            logging.info(f"\nATTENTION  MODE TEST : Seulement {TEST_LIMIT} produits traités")
             logging.info("   Pour tout migrer, mettre TEST_MODE = False dans le script")
     
     def executer(self):
@@ -381,32 +364,32 @@ class MigrationProduits:
         debut = datetime.now()
         
         print("\n" + "="*70)
-        print("DÉBUT MIGRATION PRODUITS v16 → v19")
+        print("DEBUT MIGRATION PRODUITS v16 -> v19")
         print("="*70)
-        print(f"Heure de début : {debut.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Heure de debut : {debut.strftime('%Y-%m-%d %H:%M:%S')}")
         
         logging.info("\n" + "="*70)
-        logging.info("DÉBUT MIGRATION PRODUITS v16 → v19")
+        logging.info("DEBUT MIGRATION PRODUITS v16 -> v19")
         logging.info("="*70)
-        logging.info(f"Heure de début : {debut.strftime('%Y-%m-%d %H:%M:%S')}")
+        logging.info(f"Heure de debut : {debut.strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Connexion
-        print("\n🔌 Connexion aux bases de données...")
+        print("\nConnexion aux bases de donnees...")
         if not self.conn.connecter_tout():
-            print("✗ Échec de connexion")
-            logging.error("✗ Échec de connexion")
+            print("X Echec de connexion")
+            logging.error("X Echec de connexion")
             return False
         
-        print("✅ Connexion réussie !")
+        print("OK Connexion reussie !")
         print("  - SOURCE : Odoo v16")
         print("  - DESTINATION : Odoo v19 SaaS")
         
         # Charger mapping des comptes
-        print("\n📂 Chargement du mapping des comptes...")
+        print("\nChargement du mapping des comptes...")
         if self.charger_account_mapping():
-            print(f"✅ {len(self.account_mapping)} comptes mappés chargés")
+            print(f"OK {len(self.account_mapping)} comptes mappes charges")
         else:
-            print("⚠️  Aucun mapping de comptes trouvé")
+            print("ATTENTION Aucun mapping de comptes trouve")
         
         # Migrer catégories d'abord
         self.migrer_categories()
