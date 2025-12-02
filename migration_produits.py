@@ -12,7 +12,11 @@ import logging
 from pathlib import Path
 from datetime import datetime
 from connexion_double_v19 import ConnexionDoubleV19
-from config_v19 import BATCH_SIZE, MAX_RETRY
+from config_v19 import MIGRATION_PARAMS
+
+# Constantes
+BATCH_SIZE = MIGRATION_PARAMS['BATCH_SIZE']
+MAX_RETRY = MIGRATION_PARAMS['MAX_RETRY']
 
 # Configuration logging
 logging.basicConfig(
