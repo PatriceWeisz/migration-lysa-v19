@@ -160,6 +160,9 @@ class MigrationPartenaires:
         # Pour la migration, on va les ignorer dans un premier temps
         # car il faudrait mapper les IDs entre les bases
         
+        # Note: En SaaS, Odoo ajoute automatiquement company_id
+        # On ne le met pas explicitement pour éviter les conflits
+        
         return data
     
     def migrer_partenaire(self, partenaire):
