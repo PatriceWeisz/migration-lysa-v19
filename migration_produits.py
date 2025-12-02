@@ -81,8 +81,7 @@ class MigrationProduits:
             'search_read',
             [],
             fields=['name', 'parent_id', 'property_account_income_categ_id', 
-                   'property_account_expense_categ_id', 'property_cost_method',
-                   'property_valuation']
+                   'property_account_expense_categ_id']
         )
         
         logging.info(f"✓ {len(categories_source)} catégories trouvées dans source")
@@ -137,12 +136,8 @@ class MigrationProduits:
                 if expense_source_id in self.account_mapping:
                     data['property_account_expense_categ_id'] = self.account_mapping[expense_source_id]
             
-            # Méthode de coût et valorisation (si disponibles)
-            if cat.get('property_cost_method'):
-                data['property_cost_method'] = cat['property_cost_method']
-            
-            if cat.get('property_valuation'):
-                data['property_valuation'] = cat['property_valuation']
+            # Méthode de coût et valorisation
+            # NOTE: Ces champs ont changé entre v16 et v19, on les laisse aux valeurs par défaut v19
             
             try:
                 # Créer catégorie
