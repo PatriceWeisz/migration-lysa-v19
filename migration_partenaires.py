@@ -120,8 +120,15 @@ class MigrationPartenaires:
     def preparer_donnees(self, partenaire):
         """Prépare les données pour l'insertion"""
         # Le nom est OBLIGATOIRE en v19
-        # Si le nom est vide, utiliser un nom par défaut
-        name = partenaire.get('name', '').strip()
+        # Si le nom est vide ou False, utiliser un nom par défaut
+        name = partenaire.get('name', '')
+        
+        # Gérer le cas où name est False (booléen) au lieu d'une chaîne
+        if not isinstance(name, str):
+            name = ''
+        
+        name = name.strip()
+        
         if not name:
             # Générer un nom par défaut basé sur l'ID ou l'email
             if partenaire.get('email'):
