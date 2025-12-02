@@ -136,9 +136,10 @@ class MigrationComplete:
     
     def migrer_journaux(self):
         """Migration des journaux"""
-        logger.info("Migration des journaux comptables...")
-        logger.warning("⚠️  Non implémenté dans cette version")
-        return True
+        from migration_journaux import MigrationJournaux
+        migration = MigrationJournaux(self.connexion)
+        limit = MIGRATION_PARAMS.get('MAX_RECORDS', None)
+        return migration.executer(limit)
     
     def migrer_partenaires(self):
         """Migration des partenaires"""
