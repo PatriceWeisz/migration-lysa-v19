@@ -141,6 +141,10 @@ class MigrationPartenaires:
         
         data = {
             'name': name,
+            # Champs requis spécifiques v19 avec valeurs par défaut
+            'autopost_bills': 'ask',      # Requis en v19
+            'group_on': 'default',        # Requis en v19
+            'group_rfq': 'default',       # Requis en v19
         }
         
         # Champs optionnels
