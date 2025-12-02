@@ -166,20 +166,29 @@ class MigrationProduits:
         logging.info("="*70)
         
         # Récupérer produits source (product.template)
+        # En mode test, limiter à TEST_LIMIT produits
         domain = []
-        if TEST_MODE:
-            domain = [('id', '<=', TEST_LIMIT)]
+        fields = ['name', 'default_code', 'type', 'categ_id', 'list_price', 
+                 'standard_price', 'description', 'description_sale', 
+                 'description_purchase', 'uom_id', 'uom_po_id', 'sale_ok',
+                 'purchase_ok', 'active', 'weight', 'volume', 'barcode',
+                 'taxes_id', 'supplier_taxes_id']
         
-        produits_source = self.conn.executer_source(
-            'product.template',
-            'search_read',
-            domain,
-            fields=['name', 'default_code', 'type', 'categ_id', 'list_price', 
-                   'standard_price', 'description', 'description_sale', 
-                   'description_purchase', 'uom_id', 'uom_po_id', 'sale_ok',
-                   'purchase_ok', 'active', 'weight', 'volume', 'barcode',
-                   'taxes_id', 'supplier_taxes_id']
-        )
+        if TEST_MODE:
+            produits_source = self.conn.executer_source(
+                'product.template',
+                'search_read',
+                domain,
+                fields=fields,
+                limit=TEST_LIMIT
+            )
+        else:
+            produits_source = self.conn.executer_source(
+                'product.template',
+                'search_read',
+                domain,
+                fields=fields
+            )
         
         self.stats['total'] = len(produits_source)
         logging.info(f"✓ {self.stats['total']} produits à migrer")
