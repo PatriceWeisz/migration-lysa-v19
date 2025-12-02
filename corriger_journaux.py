@@ -204,14 +204,13 @@ class CorrectionJournaux:
         return True
     
     def corriger_journal_existant(self, code, journal_source, journal_dest):
-        """Corrige un journal existant"""
+        """Corrige un journal existant - FORCE la synchronisation complète"""
         logger.info(f"\n🔧 Correction du journal '{code}'...")
         
-        # Identifier les différences
-        a_corriger = False
         updates = {}
+        details = []
         
-        # Vérifier les comptes
+        # Vérifier TOUS les comptes (synchronisation forcée)
         champs_comptes = [
             'default_account_id',
             'suspense_account_id',
@@ -223,31 +222,50 @@ class CorrectionJournaux:
             compte_source = journal_source.get(champ)
             compte_dest = journal_dest.get(champ)
             
-            # Extraire les codes de comptes
+            # Extraire les infos du compte source
             code_source = None
-            code_dest = None
+            compte_source_id = None
             
             if compte_source and compte_source != False:
                 if isinstance(compte_source, (list, tuple)):
                     code_source = compte_source[1] if len(compte_source) >= 2 else None
                     compte_source_id = compte_source[0]
             
+            # Extraire les infos du compte destination
+            code_dest = None
             if compte_dest and compte_dest != False:
                 if isinstance(compte_dest, (list, tuple)):
                     code_dest = compte_dest[1] if len(compte_dest) >= 2 else None
             
-            # Si le compte source est configuré mais pas le dest
-            if code_source and not code_dest:
-                # Trouver le compte destination correspondant
+            # FORCER la synchronisation si :
+            # 1. Le compte source est configuré ET
+            # 2. Le compte destination est différent OU non configuré
+            if compte_source_id:
                 compte_dest_id = self.trouver_compte_destination(compte_source_id)
                 
                 if compte_dest_id:
-                    updates[champ] = compte_dest_id
-                    a_corriger = True
-                    logger.debug(f"  ✓ {champ}: Sera configuré avec {code_source}")
+                    # Vérifier si différent
+                    if code_source != code_dest:
+                        updates[champ] = compte_dest_id
+                        if code_dest:
+                            details.append(f"  🔄 {champ}: '{code_dest}' → '{code_source}'")
+                        else:
+                            details.append(f"  ✅ {champ}: Configuration de '{code_source}'")
+                else:
+                    logger.warning(f"  ⚠️  {champ}: Compte source '{code_source}' non trouvé dans mapping")
+            elif compte_dest and compte_dest != False:
+                # Le compte n'est PAS dans la source mais EST dans la destination
+                # On peut choisir de le retirer (mettre à False) ou le laisser
+                # Pour l'instant, on le laisse (cas des comptes profit/loss v19)
+                pass
+        
+        # Afficher les changements
+        if details:
+            for detail in details:
+                logger.info(detail)
         
         # Appliquer les corrections
-        if a_corriger and updates:
+        if updates:
             try:
                 if not MIGRATION_PARAMS.get('MODE_SIMULATION', False):
                     self.connexion.executer_destination(
@@ -256,17 +274,21 @@ class CorrectionJournaux:
                         [journal_dest['id']],
                         updates
                     )
+                    logger.info(f"✓ Journal '{code}' corrigé ({len(updates)} compte(s) mis à jour)")
+                else:
+                    logger.info(f"[SIMULATION] Journal '{code}' : {len(updates)} compte(s) seraient mis à jour")
                 
-                logger.info(f"✓ Journal '{code}' corrigé ({len(updates)} compte(s))")
                 self.stats['journaux_corriges'] += 1
                 self.stats['comptes_mis_a_jour'] += len(updates)
                 return True
             except Exception as e:
                 logger.error(f"✗ Erreur correction: {e}")
+                import traceback
+                traceback.print_exc()
                 self.stats['erreurs'] += 1
                 return False
         else:
-            logger.info(f"ℹ️  Journal '{code}' : Pas de correction nécessaire ou impossible")
+            logger.info(f"ℹ️  Journal '{code}' : Aucun compte à synchroniser")
             return True
     
     def executer_correction(self):
