@@ -71,6 +71,10 @@ class MigrationProduits:
     
     def migrer_categories(self):
         """Migre d'abord les catégories de produits"""
+        print("\n" + "="*70)
+        print("MIGRATION DES CATÉGORIES DE PRODUITS")
+        print("="*70)
+        
         logging.info("\n" + "="*70)
         logging.info("MIGRATION DES CATÉGORIES DE PRODUITS")
         logging.info("="*70)
@@ -84,6 +88,7 @@ class MigrationProduits:
                    'property_account_expense_categ_id']
         )
         
+        print(f"✓ {len(categories_source)} catégories trouvées dans source")
         logging.info(f"✓ {len(categories_source)} catégories trouvées dans source")
         
         # Récupérer catégories destination
@@ -97,6 +102,7 @@ class MigrationProduits:
         # Créer index par nom
         categories_dest_by_name = {c['name']: c['id'] for c in categories_dest}
         
+        print(f"✓ {len(categories_dest)} catégories existantes dans destination")
         logging.info(f"✓ {len(categories_dest)} catégories existantes dans destination")
         
         # Migrer chaque catégorie (ordre important : parents d'abord)
@@ -111,6 +117,7 @@ class MigrationProduits:
             if name in categories_dest_by_name:
                 dest_id = categories_dest_by_name[name]
                 self.categorie_mapping[source_id] = dest_id
+                print(f"  ✓ Catégorie existante : {name}")
                 logging.info(f"  Catégorie existante : {name} (ID: {dest_id})")
                 continue
             
@@ -149,16 +156,25 @@ class MigrationProduits:
                 
                 self.categorie_mapping[source_id] = dest_id
                 categories_dest_by_name[name] = dest_id
+                print(f"  ✓ Catégorie créée : {name}")
                 logging.info(f"  ✓ Catégorie créée : {name} (ID: {dest_id})")
                 
             except Exception as e:
+                print(f"  ✗ Erreur catégorie {name}: {e}")
                 logging.error(f"  ✗ Erreur création catégorie {name}: {e}")
         
         self.sauvegarder_categorie_mapping()
+        print(f"\n✅ Migration catégories terminée : {len(self.categorie_mapping)} catégories mappées")
         logging.info(f"\n✓ Migration catégories terminée : {len(self.categorie_mapping)} catégories")
     
     def migrer_produits(self):
         """Migre les produits (templates et variantes)"""
+        print("\n" + "="*70)
+        print("MIGRATION DES PRODUITS")
+        if TEST_MODE:
+            print(f"⚠️  MODE TEST : Limite à {TEST_LIMIT} produits")
+        print("="*70)
+        
         logging.info("\n" + "="*70)
         logging.info("MIGRATION DES PRODUITS")
         if TEST_MODE:
@@ -171,7 +187,7 @@ class MigrationProduits:
         fields = ['name', 'default_code', 'type', 'categ_id', 'list_price', 
                  'standard_price', 'description', 'description_sale', 
                  'description_purchase', 'uom_id', 'sale_ok',
-                 'purchase_ok', 'active', 'weight', 'volume', 'barcode']
+                 'purchase_ok', 'active', 'weight', 'volume', 'barcode', 'tracking']
         
         if TEST_MODE:
             produits_source = self.conn.executer_source(
@@ -190,6 +206,7 @@ class MigrationProduits:
             )
         
         self.stats['total'] = len(produits_source)
+        print(f"✓ {self.stats['total']} produits à migrer")
         logging.info(f"✓ {self.stats['total']} produits à migrer")
         
         # Récupérer produits destination
@@ -211,31 +228,66 @@ class MigrationProduits:
             name = prod['name']
             ref = prod.get('default_code', '')
             
+            print(f"\n[{idx}/{self.stats['total']}] {name} ({ref or 'sans ref'})")
             logging.info(f"\n[{idx}/{self.stats['total']}] {name} ({ref or 'sans ref'})")
             
             # Vérifier si existe (par référence ou nom)
             dest_id = None
             if ref and ref in produits_dest_by_ref:
                 dest_id = produits_dest_by_ref[ref]
+                print(f"  ✓ Produit existant par référence (ID: {dest_id})")
                 logging.info(f"  Produit existant par référence (ID: {dest_id})")
                 self.stats['existants'] += 1
                 continue
             elif name in produits_dest_by_name:
                 dest_id = produits_dest_by_name[name]
+                print(f"  ✓ Produit existant par nom (ID: {dest_id})")
                 logging.info(f"  Produit existant par nom (ID: {dest_id})")
                 self.stats['existants'] += 1
                 continue
             
             # Préparer données
+            # Mapper le type v16 → v19
+            # v16: 'product' (stockable), 'consu' (consommable), 'service'
+            # v19: Le champ 'type' existe toujours mais avec des valeurs différentes
+            #      + nouveau champ 'detailed_type' pour produits stockables
+            product_type = prod.get('type', 'consu')
+            detailed_type = None
+            
+            # Conversion des types
+            if product_type == 'product':
+                # Produit stockable en v16 → 'product' avec detailed_type='storable' en v19
+                product_type = 'product'
+                detailed_type = 'storable'
+            elif product_type == 'consu':
+                # Consommable → reste 'consu' mais on peut aussi mettre detailed_type='consumable'
+                product_type = 'consu'
+            elif product_type == 'service':
+                # Service → reste 'service'
+                product_type = 'service'
+            
             data = {
                 'name': name,
-                'type': prod.get('type', 'consu'),
+                'type': product_type,
                 'list_price': prod.get('list_price', 0.0),
                 'standard_price': prod.get('standard_price', 0.0),
                 'sale_ok': prod.get('sale_ok', True),
                 'purchase_ok': prod.get('purchase_ok', True),
                 'active': prod.get('active', True),
             }
+            
+            # Ajouter detailed_type si nécessaire (pour produits stockables)
+            if detailed_type:
+                data['detailed_type'] = detailed_type
+            
+            # Tracking (pour produits stockables)
+            if product_type == 'product':
+                # Utiliser le tracking de la source si disponible, sinon 'none' par défaut
+                tracking = prod.get('tracking', 'none')
+                # Valeurs valides : 'none', 'lot', 'serial'
+                if tracking not in ['none', 'lot', 'serial']:
+                    tracking = 'none'
+                data['tracking'] = tracking
             
             # Référence
             if ref:
@@ -277,6 +329,7 @@ class MigrationProduits:
                     data
                 )
                 
+                print(f"  ✓ Produit créé (ID: {dest_id})")
                 logging.info(f"  ✓ Produit créé (ID: {dest_id})")
                 self.stats['migres'] += 1
                 
@@ -285,11 +338,28 @@ class MigrationProduits:
                 produits_dest_by_name[name] = dest_id
                 
             except Exception as e:
+                print(f"  ✗ Erreur création produit {name}: {e}")
                 logging.error(f"  ✗ Erreur création produit {name}: {e}")
                 self.stats['erreurs'] += 1
     
     def afficher_stats(self):
         """Affiche les statistiques finales"""
+        print("\n" + "="*70)
+        print("STATISTIQUES FINALES")
+        print("="*70)
+        print(f"Total à migrer    : {self.stats['total']}")
+        print(f"Nouveaux migrés   : {self.stats['migres']}")
+        print(f"Déjà existants    : {self.stats['existants']}")
+        print(f"Erreurs           : {self.stats['erreurs']}")
+        
+        if self.stats['total'] > 0:
+            taux = ((self.stats['migres'] + self.stats['existants']) / self.stats['total']) * 100
+            print(f"Taux de succès    : {taux:.1f}%")
+        
+        if TEST_MODE:
+            print(f"\n⚠️  MODE TEST : Seulement {TEST_LIMIT} produits traités")
+            print("   Pour tout migrer, mettre TEST_MODE = False dans le script")
+        
         logging.info("\n" + "="*70)
         logging.info("STATISTIQUES FINALES")
         logging.info("="*70)
@@ -310,18 +380,33 @@ class MigrationProduits:
         """Exécute la migration complète"""
         debut = datetime.now()
         
+        print("\n" + "="*70)
+        print("DÉBUT MIGRATION PRODUITS v16 → v19")
+        print("="*70)
+        print(f"Heure de début : {debut.strftime('%Y-%m-%d %H:%M:%S')}")
+        
         logging.info("\n" + "="*70)
         logging.info("DÉBUT MIGRATION PRODUITS v16 → v19")
         logging.info("="*70)
         logging.info(f"Heure de début : {debut.strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Connexion
+        print("\n🔌 Connexion aux bases de données...")
         if not self.conn.connecter_tout():
+            print("✗ Échec de connexion")
             logging.error("✗ Échec de connexion")
             return False
         
+        print("✅ Connexion réussie !")
+        print("  - SOURCE : Odoo v16")
+        print("  - DESTINATION : Odoo v19 SaaS")
+        
         # Charger mapping des comptes
-        self.charger_account_mapping()
+        print("\n📂 Chargement du mapping des comptes...")
+        if self.charger_account_mapping():
+            print(f"✅ {len(self.account_mapping)} comptes mappés chargés")
+        else:
+            print("⚠️  Aucun mapping de comptes trouvé")
         
         # Migrer catégories d'abord
         self.migrer_categories()
@@ -334,6 +419,9 @@ class MigrationProduits:
         
         fin = datetime.now()
         duree = fin - debut
+        print(f"\nDurée totale : {duree}")
+        print("="*70)
+        
         logging.info(f"\nDurée totale : {duree}")
         logging.info("="*70)
         
