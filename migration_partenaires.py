@@ -56,7 +56,7 @@ class MigrationPartenaires:
         
         # Champs à récupérer
         fields = [
-            'name', 'email', 'phone', 'mobile',
+            'id', 'name', 'email', 'phone', 'mobile',
             'street', 'street2', 'city', 'zip',
             'country_id', 'state_id',
             'vat', 'ref',
@@ -65,7 +65,7 @@ class MigrationPartenaires:
             'comment',
         ]
         
-        # Domaine (tous les partenaires)
+        # Domaine (tous les partenaires, y compris ceux sans nom pour les traiter)
         domain = []
         
         # Limite si spécifiée
@@ -119,8 +119,21 @@ class MigrationPartenaires:
     
     def preparer_donnees(self, partenaire):
         """Prépare les données pour l'insertion"""
+        # Le nom est OBLIGATOIRE en v19
+        # Si le nom est vide, utiliser un nom par défaut
+        name = partenaire.get('name', '').strip()
+        if not name:
+            # Générer un nom par défaut basé sur l'ID ou l'email
+            if partenaire.get('email'):
+                name = f"Contact {partenaire['email']}"
+            elif partenaire.get('ref'):
+                name = f"Contact {partenaire['ref']}"
+            else:
+                name = f"Contact {partenaire['id']}"
+            logger.warning(f"⚠️  Partenaire sans nom (ID: {partenaire['id']}), nom généré: {name}")
+        
         data = {
-            'name': partenaire['name'],
+            'name': name,
         }
         
         # Champs optionnels
