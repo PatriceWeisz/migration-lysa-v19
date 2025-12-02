@@ -1,153 +1,243 @@
-# Projet Migration LYSA v19
+# 🚀 Migration LYSA vers Odoo v19
 
-## Description
-Projet de migration des données vers Odoo v19 :
-- **Base SOURCE** : lysa-old1 (ancienne base)
-- **Base DESTINATION** : lysa-v19 (nouvelle base Odoo 19)
+Projet de migration des données LYSA de l'ancienne base Odoo v16 vers la nouvelle base Odoo v19 SaaS.
 
-## Nouveautés Odoo v19
+## 📋 Description
 
-Odoo v19 apporte plusieurs changements importants :
-- Nouveau moteur comptable optimisé
-- Amélioration des performances sur les écritures comptables
-- Nouvelles API REST en complément de XML-RPC
-- Gestion améliorée des séquences
-- Optimisation des règles de validation
+Migration automatisée comprenant :
+- ✅ Plan comptable (2,654 comptes)
+- ✅ Partenaires (2,890 clients/fournisseurs)
+- ⏳ Produits (2,080 articles)
+- ⏳ Factures (130,746 écritures)
 
-## Structure du projet
+## 🎯 Stack Technique
 
-```
-migration_lysa_v19/
-├── config_v19.py              # Configuration des bases v19
-├── connexion_double_v19.py    # Gestion connexions doubles
-├── migration_comptable.py     # Migration des données comptables
-├── migration_factures.py      # Migration spécifique factures
-├── migration_partenaires.py   # Migration des partenaires
-├── verification_v19.py        # Vérifications post-migration
-├── utils/
-│   ├── __init__.py
-│   ├── logger.py             # Système de logs
-│   └── helpers.py            # Fonctions utilitaires
-├── tests/
-│   ├── __init__.py
-│   ├── test_connexion.py
-│   └── test_migration.py
-├── README.md
-└── requirements.txt
-```
+- **Python 3.11+**
+- **Odoo v16** (source) → **Odoo v19** (destination)
+- **XML-RPC API**
+- **Base SaaS** : lysa-migration.odoo.com
 
-## Configuration
+## 📦 Installation
 
-### Bases configurées :
-
-**Base SOURCE :**
-- URL: https://lysa-old1.odoo.com/
-- DB: lysa-old1-lysa-db-25736325
-- User: support@senedoo.com
-
-**Base DESTINATION (v19) :**
-- URL: https://lysa-migration.odoo.com/
-- DB: lysa-migration (Base SaaS Odoo)
-- User: support@senedoo.com
-
-## Installation
+### Prérequis
 
 ```bash
-cd migration_lysa_v19
+Python 3.11+
+pip (gestionnaire de packages)
+```
+
+### Installation Locale
+
+```bash
+# Cloner le repository
+git clone https://github.com/PatriceWeisz/migration-lysa-v19.git
+cd migration-lysa-v19
+
+# Créer un environnement virtuel
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux/Mac
+
+# Installer les dépendances
 pip install -r requirements.txt
 ```
 
-## Utilisation
-
-### 1. Test de connexion
+### Installation sur PythonAnywhere
 
 ```bash
+# Cloner le repository
+git clone https://github.com/PatriceWeisz/migration-lysa-v19.git migration_lysa_v19
+cd migration_lysa_v19
+
+# Lancer le script de déploiement
+bash deploy.sh
+```
+
+## 🚀 Utilisation
+
+### Tests
+
+```bash
+# Test de connexion aux deux bases
 python tests/test_connexion.py
+
+# Test du plan comptable
+python tests/test_plan_comptable.py
 ```
 
-### 2. Migration du plan comptable (OBLIGATOIRE EN PREMIER)
+### Migration
 
 ```bash
+# 1. Plan comptable (EN PREMIER)
 python migration_plan_comptable.py
-```
 
-⚠️ **Important** : Le plan comptable doit être migré en premier car les partenaires et factures y font référence.
-
-### 3. Migration des partenaires
-
-```bash
+# 2. Partenaires
 python migration_partenaires.py
-```
 
-### 4. Migration des factures
-
-```bash
-python migration_factures.py
-```
-
-### 5. Vérification post-migration
-
-```bash
+# 3. Vérification
 python verification_v19.py
 ```
 
-## Fonctionnalités
+### Migration Complète
 
-### Classe ConnexionDoubleV19
+```bash
+# Tout en automatique (dans l'ordre correct)
+python migration_complete.py
+```
 
-Gestion avancée des connexions avec :
-- Reconnexion automatique
-- Pool de connexions
-- Gestion des erreurs améliorée
-- Support API REST et XML-RPC
+## 📚 Documentation
 
-### Système de logs
+- **[QUICKSTART.md](QUICKSTART.md)** - Guide de démarrage rapide
+- **[SETUP_GIT.md](SETUP_GIT.md)** - Configuration Git et GitHub
+- **[DEPLOIEMENT_PYTHONANYWHERE.md](DEPLOIEMENT_PYTHONANYWHERE.md)** - Déploiement PythonAnywhere
+- **[ORDRE_MIGRATION.md](ORDRE_MIGRATION.md)** - Ordre obligatoire de migration
+- **[NOTES_SAAS.md](NOTES_SAAS.md)** - Spécificités bases SaaS
 
-Tous les scripts génèrent des logs détaillés dans `logs/` :
-- Logs d'information
-- Logs d'erreurs
-- Rapports de migration
-- Statistiques
+## ⚙️ Configuration
 
-### Migration par lots
+Éditez `config_v19.py` pour configurer :
 
-- Traitement par lots configurable
-- Parallélisation des opérations
-- Gestion des erreurs par lot
-- Reprise sur erreur
+```python
+# Bases Odoo
+SOURCE_CONFIG = {...}
+DEST_CONFIG_V19 = {...}
 
-## Paramètres de migration
+# Paramètres de migration
+MIGRATION_PARAMS = {
+    'BATCH_SIZE': 100,
+    'PARALLEL_WORKERS': 2,
+    'MODE_SIMULATION': False,
+    ...
+}
+```
 
-Configurables dans `config_v19.py` :
-- `BATCH_SIZE`: 200 (taille des lots)
-- `PARALLEL_WORKERS`: 5 (workers parallèles)
-- `MAX_RETRY`: 3 (tentatives max)
-- `TIMEOUT`: 300 (timeout en secondes)
-- `LOG_LEVEL`: 'INFO'
+## 📊 Fonctionnalités
 
-## Checklist de migration
+### Migration du Plan Comptable
+- ✅ Mapping automatique des types de comptes v16 → v19
+- ✅ Gestion des doublons
+- ✅ Génération fichier de mapping JSON
+- ✅ Progress tracking en temps réel
 
-- [ ] Connexion aux deux bases testée
-- [ ] Sauvegarde de la base source effectuée
-- [ ] Migration du plan comptable
-- [ ] Migration des partenaires (clients/fournisseurs)
-- [ ] Migration des produits
-- [ ] Migration des factures clients
-- [ ] Migration des factures fournisseurs
-- [ ] Vérification des soldes comptables
-- [ ] Vérification des séquences
-- [ ] Tests de validation
-- [ ] Documentation des anomalies
+### Migration des Partenaires
+- ✅ Clients et fournisseurs
+- ✅ Détection automatique des doublons
+- ✅ Validation des données
+- ✅ Statistiques détaillées
 
-## Auteur
+### Vérifications
+- ✅ Validation version Odoo
+- ✅ Vérification des comptages
+- ✅ Contrôle d'intégrité
+- ✅ Rapport de vérification
 
-SENEDOO
+## 🔧 Outils Fournis
 
-## Date
+### Scripts Principaux
 
-Décembre 2025
+| Script | Description |
+|--------|-------------|
+| `migration_plan_comptable.py` | Migration plan comptable |
+| `migration_partenaires.py` | Migration partenaires |
+| `verification_v19.py` | Vérifications post-migration |
+| `migration_complete.py` | Orchestrateur complet |
 
-## Version
+### Scripts Utilitaires
 
-1.0.0 - Migration vers Odoo v19
+| Script | Description |
+|--------|-------------|
+| `debug_plan_comptable.py` | Debug plan comptable |
+| `check_migration_status.py` | Vérifier le statut |
+| `run_migration_scheduled.py` | Pour tâches planifiées |
+| `deploy.sh` | Déploiement automatique |
+
+## 📁 Structure du Projet
+
+```
+migration_lysa_v19/
+├── config_v19.py              # Configuration
+├── connexion_double_v19.py    # Gestion connexions
+├── migration_*.py             # Scripts de migration
+├── verification_v19.py        # Vérifications
+├── utils/                     # Utilitaires
+│   ├── logger.py
+│   └── helpers.py
+├── tests/                     # Tests unitaires
+├── logs/                      # Logs (générés)
+└── docs/                      # Documentation
+```
+
+## 🔒 Sécurité
+
+- ⚠️ **NE PAS** commiter les mots de passe
+- ⚠️ Utiliser des variables d'environnement pour les credentials
+- ⚠️ Toujours tester en mode simulation d'abord
+- ⚠️ Faire des sauvegardes avant migration
+
+## 📝 Logs
+
+Les logs sont automatiquement générés dans `logs/` :
+
+```bash
+# Voir les derniers logs
+tail -f logs/migration_v19_*.log
+
+# Vérifier le statut
+python check_migration_status.py
+```
+
+## 🤝 Contribution
+
+Projet interne SENEDOO.
+
+## 📄 Licence
+
+Usage interne SENEDOO uniquement.
+
+## 👤 Auteur
+
+**SENEDOO**
+- GitHub: [@PatriceWeisz](https://github.com/PatriceWeisz)
+
+## 📞 Support
+
+En cas de problème :
+1. Consultez la documentation dans les fichiers `.md`
+2. Vérifiez les logs dans `logs/`
+3. Utilisez les scripts de debug
+
+## 🎯 Roadmap
+
+- [x] Migration plan comptable
+- [x] Migration partenaires
+- [x] Vérifications post-migration
+- [ ] Migration produits
+- [ ] Migration factures clients
+- [ ] Migration factures fournisseurs
+- [ ] Migration paiements
+
+## ⚡ Quick Start
+
+```bash
+# Installation
+git clone https://github.com/PatriceWeisz/migration-lysa-v19.git
+cd migration-lysa-v19
+pip install -r requirements.txt
+
+# Configuration
+cp config_v19.py config_v19_local.py
+# Éditer config_v19_local.py avec vos paramètres
+
+# Test
+python tests/test_connexion.py
+
+# Migration
+python migration_plan_comptable.py
+```
+
+---
+
+**Version** : 1.0.0  
+**Date** : Décembre 2025  
+**Status** : ✅ Production Ready
 
