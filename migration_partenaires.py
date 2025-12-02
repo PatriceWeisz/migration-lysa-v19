@@ -55,8 +55,9 @@ class MigrationPartenaires:
         logger.info("Récupération des partenaires source...")
         
         # Champs à récupérer
+        # Note: En v19, 'mobile' n'existe plus, on garde juste 'phone'
         fields = [
-            'id', 'name', 'email', 'phone', 'mobile',
+            'id', 'name', 'email', 'phone', 'mobile',  # On récupère mobile de v16
             'street', 'street2', 'city', 'zip',
             'country_id', 'state_id',
             'vat', 'ref',
@@ -148,8 +149,9 @@ class MigrationPartenaires:
         }
         
         # Champs optionnels
+        # Note: 'mobile' n'existe plus en v19 (fusionné dans 'phone')
         optional_fields = [
-            'email', 'phone', 'mobile',
+            'email', 'phone',  # 'mobile' retiré (n'existe plus en v19)
             'street', 'street2', 'city', 'zip',
             'vat', 'ref', 'comment',
             'customer_rank', 'supplier_rank',
@@ -159,6 +161,12 @@ class MigrationPartenaires:
         for field in optional_fields:
             if partenaire.get(field):
                 data[field] = partenaire[field]
+        
+        # Gérer le champ mobile (existe en v16 mais pas en v19)
+        # En v19, mobile est fusionné dans phone
+        if partenaire.get('mobile') and not data.get('phone'):
+            # Si mobile existe mais pas phone, utiliser mobile comme phone
+            data['phone'] = partenaire['mobile']
         
         # Gestion des relations (country_id, state_id, parent_id)
         # Pour la migration, on va les ignorer dans un premier temps
