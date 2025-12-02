@@ -27,7 +27,7 @@ class VerificationJournaux:
         logger.info(f"Récupération des journaux de la {base.upper()}...")
         
         # Champs communs entre v16 et v19
-        fields_base = [
+        fields = [
             'id', 'name', 'code', 'type',
             'active', 'sequence',
             'currency_id',
@@ -38,18 +38,6 @@ class VerificationJournaux:
             'loss_account_id',
             'refund_sequence',
         ]
-        
-        # Champs spécifiques v19 (pas en v16)
-        fields_v19 = [
-            'payment_debit_account_id',
-            'payment_credit_account_id',
-        ]
-        
-        # Utiliser les champs adaptés selon la base
-        if base == 'source':
-            fields = fields_base  # v16 n'a pas les champs payment_xxx
-        else:
-            fields = fields_base + fields_v19  # v19 a tous les champs
         
         try:
             if base == 'source':
@@ -95,20 +83,13 @@ class VerificationJournaux:
         # Comptes comptables
         print(f"\n  Comptes configurés:")
         
-        # Comptes communs v16/v19
+        # Comptes configurables dans les journaux
         comptes_fields = [
             ('default_account_id', 'Compte par défaut'),
             ('suspense_account_id', 'Compte suspens'),
             ('profit_account_id', 'Compte profit'),
             ('loss_account_id', 'Compte perte'),
         ]
-        
-        # Comptes spécifiques v19
-        if 'payment_debit_account_id' in journal:
-            comptes_fields.extend([
-                ('payment_debit_account_id', 'Compte paiement débit'),
-                ('payment_credit_account_id', 'Compte paiement crédit'),
-            ])
         
         for field, label in comptes_fields:
             compte = journal.get(field)
