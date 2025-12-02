@@ -170,9 +170,8 @@ class MigrationProduits:
         domain = []
         fields = ['name', 'default_code', 'type', 'categ_id', 'list_price', 
                  'standard_price', 'description', 'description_sale', 
-                 'description_purchase', 'uom_id', 'uom_po_id', 'sale_ok',
-                 'purchase_ok', 'active', 'weight', 'volume', 'barcode',
-                 'taxes_id', 'supplier_taxes_id']
+                 'description_purchase', 'uom_id', 'sale_ok',
+                 'purchase_ok', 'active', 'weight', 'volume', 'barcode']
         
         if TEST_MODE:
             produits_source = self.conn.executer_source(
@@ -256,11 +255,9 @@ class MigrationProduits:
                 if categ_source_id in self.categorie_mapping:
                     data['categ_id'] = self.categorie_mapping[categ_source_id]
             
-            # Unités de mesure (garder celles par défaut si non trouvées)
+            # Unité de mesure (garder celle par défaut si non trouvée)
             if prod.get('uom_id'):
                 data['uom_id'] = prod['uom_id'][0]
-            if prod.get('uom_po_id'):
-                data['uom_po_id'] = prod['uom_po_id'][0]
             
             # Poids et volume
             if prod.get('weight'):
@@ -271,12 +268,6 @@ class MigrationProduits:
             # Code-barres
             if prod.get('barcode'):
                 data['barcode'] = prod['barcode']
-            
-            # Taxes (garder les IDs si disponibles)
-            if prod.get('taxes_id'):
-                data['taxes_id'] = [(6, 0, prod['taxes_id'])]
-            if prod.get('supplier_taxes_id'):
-                data['supplier_taxes_id'] = [(6, 0, prod['supplier_taxes_id'])]
             
             try:
                 # Créer produit
