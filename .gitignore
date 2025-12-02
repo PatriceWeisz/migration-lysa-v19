@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Logs
+logs/
+*.log
+
+# Fichiers de mapping générés
+logs/account_mapping.json
+logs/partner_mapping.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Données temporaires
+temp/
+tmp/
+*.tmp
+
+# Fichiers de configuration sensibles
+config_prod.py
+*.secret
+
+# Excel et CSV générés
+*.xlsx
+*.xls
+*.csv
+rapports/
+
+# Cache pytest
+.pytest_cache/
+.coverage
+htmlcov/
+

@@ -1,0 +1,32 @@
+# Requirements pour Migration LYSA v19
+# =====================================
+
+# Connexion Odoo via XML-RPC (inclus dans Python standard)
+# xmlrpc.client est inclus dans la bibliothèque standard Python 3.x
+
+# Traitement de données et rapports
+pandas>=2.0.0
+openpyxl>=3.1.0
+
+# Logging amélioré
+colorlog>=6.7.0
+
+# Barre de progression
+tqdm>=4.66.0
+
+# Tests
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Validation de données
+pydantic>=2.5.0
+
+# Utilitaires date/time
+python-dateutil>=2.8.2
+
+# Optionnel : pour rapports PDF
+# reportlab>=4.0.0
+
+# Optionnel : pour envoi emails de rapport
+# python-dotenv>=1.0.0
+
