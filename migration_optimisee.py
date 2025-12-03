@@ -102,6 +102,12 @@ class MigrationOptimisee:
         
         if cache_key in self.cache_ext_id_source:
             ext_id = self.cache_ext_id_source[cache_key]
+            ext_key = f"{ext_id['module']}.{ext_id['name']}"
+            
+            # VÉRIFIER si l'external_id existe déjà dans destination
+            if ext_key in self.cache_ext_id_dest:
+                # Déjà existe, ne pas recréer
+                return False
             
             try:
                 self.conn.executer_destination('ir.model.data', 'create', {
@@ -112,11 +118,12 @@ class MigrationOptimisee:
                 })
                 
                 # Mettre à jour le cache dest
-                ext_key = f"{ext_id['module']}.{ext_id['name']}"
                 self.cache_ext_id_dest[ext_key] = dest_id
                 
                 return True
             except:
+                # Si échec (existe déjà), mettre à jour le cache quand même
+                self.cache_ext_id_dest[ext_key] = dest_id
                 return False
         
         return False
