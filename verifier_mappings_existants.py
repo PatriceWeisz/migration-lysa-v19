@@ -6,8 +6,21 @@ files = {
     'Partenaires': 'partner_mapping.json', 
     'Produits': 'product_template_mapping.json',
     'Taxes': 'tax_mapping.json',
+    'Journaux': 'account_journal_mapping.json',
+    'Utilisateurs': 'user_mapping.json',
+    'Employés': 'employe_mapping.json',
+    'Départements': 'hr_department_mapping.json',
+    'Postes': 'hr_job_mapping.json',
+    'Entrepôts': 'stock_warehouse_mapping.json',
     'Unités': 'uom_mapping.json',
     'Emplacements': 'location_mapping.json',
+    'Catégories prod': 'product_category_mapping.json',
+    'Listes prix': 'pricelist_mapping.json',
+    'Étiquettes contact': 'partner_category_mapping.json',
+    'Plans analytiques': 'analytic_plan_mapping.json',
+    'Comptes analytiques': 'analytic_account_mapping.json',
+    'Équipes commerciales': 'crm_team_mapping.json',
+    'Projets': 'project_mapping.json',
 }
 
 print("="*60)

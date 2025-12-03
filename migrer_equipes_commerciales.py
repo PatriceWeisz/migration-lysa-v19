@@ -29,7 +29,17 @@ LOGS_DIR = Path('logs')
 mapping_file = LOGS_DIR / 'crm_team_mapping.json'
 mapping = json.load(open(mapping_file)) if mapping_file.exists() else {}
 mapping = {int(k): v for k, v in mapping.items()}
-print(f"Mapping: {len(mapping)}")
+print(f"Mapping equipes: {len(mapping)}")
+
+# Charger mapping utilisateurs
+user_mapping_file = LOGS_DIR / 'user_mapping.json'
+if user_mapping_file.exists():
+    with open(user_mapping_file, 'r') as f:
+        user_mapping = json.load(f)
+    print(f"Mapping utilisateurs: {len(user_mapping)}")
+else:
+    user_mapping = {}
+    print("Mapping utilisateurs: AUCUN (user_id=2 par defaut)")
 
 src = conn.executer_source('crm.team', 'search_read', [],
                            fields=['name', 'user_id', 'company_id', 'active'])
@@ -61,7 +71,26 @@ for idx, rec in enumerate(src, 1):
     
     try:
         data = {k: v for k, v in rec.items() if k != 'id' and v not in (None, False, '')}
+        
+        # Traiter user_id AVANT de nettoyer les many2one
+        src_user_id = rec.get('user_id')
+        if src_user_id:
+            if isinstance(src_user_id, (list, tuple)):
+                src_user_id = src_user_id[0]
+            
+            # Mapper via user_mapping.json
+            if str(src_user_id) in user_mapping:
+                data['user_id'] = user_mapping[str(src_user_id)]
+            else:
+                # Utilisateur pas mappé -> admin par défaut
+                data['user_id'] = 2
+        else:
+            data['user_id'] = 2
+        
+        # Nettoyer les autres relations many2one
         for k in list(data.keys()):
+            if k == 'user_id':
+                continue  # Déjà traité
             if isinstance(data[k], (list, tuple)) and len(data[k]) == 2:
                 data[k] = data[k][0]
         
