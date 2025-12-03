@@ -29,7 +29,17 @@ LOGS_DIR = Path('logs')
 mapping_file = LOGS_DIR / 'analytic_account_mapping.json'
 mapping = json.load(open(mapping_file)) if mapping_file.exists() else {}
 mapping = {int(k): v for k, v in mapping.items()}
-print(f"Mapping: {len(mapping)}")
+print(f"Mapping comptes analytiques: {len(mapping)}")
+
+# Charger mapping plans analytiques pour convertir plan_id
+plan_mapping_file = LOGS_DIR / 'analytic_plan_mapping.json'
+if plan_mapping_file.exists():
+    with open(plan_mapping_file, 'r') as f:
+        plan_mapping = json.load(f)
+    print(f"Mapping plans analytiques: {len(plan_mapping)}")
+else:
+    plan_mapping = {}
+    print("Mapping plans analytiques: AUCUN")
 
 src = conn.executer_source('account.analytic.account', 'search_read', [],
                            fields=['name', 'code', 'partner_id', 'company_id'])
@@ -53,15 +63,36 @@ for idx, rec in enumerate(src, 1):
         existants += 1
         continue
     
-    if code in dst_index:
+    # Vérifier par code SEULEMENT si le code est valide (pas False, pas vide)
+    if code and code != 'False' and code not in (None, False, '') and code in dst_index:
         mapping[rec['id']] = dst_index[code]
-        print(f"  -> Trouve")
+        print(f"  -> Trouve par code")
         existants += 1
         continue
     
     try:
         data = {k: v for k, v in rec.items() if k != 'id' and v not in (None, False, '')}
+        
+        # Traiter plan_id AVANT de nettoyer les many2one
+        src_plan_id = rec.get('plan_id')
+        if src_plan_id:
+            if isinstance(src_plan_id, (list, tuple)):
+                src_plan_id = src_plan_id[0]
+            
+            # Mapper via plan_mapping.json
+            if str(src_plan_id) in plan_mapping:
+                data['plan_id'] = plan_mapping[str(src_plan_id)]
+            else:
+                # Plan non mappé -> utiliser le plan par défaut (ID 2)
+                data['plan_id'] = 2
+        else:
+            # Pas de plan_id -> utiliser le plan par défaut
+            data['plan_id'] = 2
+        
+        # Nettoyer les autres relations many2one
         for k in list(data.keys()):
+            if k == 'plan_id':
+                continue  # Déjà traité
             if isinstance(data[k], (list, tuple)) and len(data[k]) == 2:
                 data[k] = data[k][0]
         
