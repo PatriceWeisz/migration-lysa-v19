@@ -198,13 +198,17 @@ class MigrationOptimisee:
         nouveau = 0
         existant = 0
         erreurs = 0
+        skip = 0
+        via_ext_id = 0
+        via_champ = 0
+        crees = 0
         
         # Traiter par lots
         for batch_start in range(0, total, BATCH_SIZE):
             batch = records[batch_start:batch_start + BATCH_SIZE]
             
             if not MODE_TEST:
-                afficher(f"  Lot {batch_start//BATCH_SIZE + 1}/{(total + BATCH_SIZE - 1)//BATCH_SIZE}")
+                afficher(f"  Lot {batch_start//BATCH_SIZE + 1}/{(total + BATCH_SIZE - 1)//BATCH_SIZE} - Mapping: {len(mapping)}/{total}")
             
             for rec in batch:
                 source_id = rec['id']
@@ -215,6 +219,7 @@ class MigrationOptimisee:
                 if existe:
                     mapping[source_id] = dest_id
                     existant += 1
+                    via_ext_id += 1
                     if MODE_TEST:
                         afficher(f"  [{existant + nouveau}/{total}] Existe via ext_id (ID: {dest_id})")
                     continue
@@ -259,65 +264,85 @@ class MigrationOptimisee:
                     
                     mapping[source_id] = check_dest_id
                     existant += 1
+                    via_champ += 1
                     if MODE_TEST:
-                        afficher(f"  [{existant + nouveau}/{total}] Existe par code/ref (ID: {check_dest_id})")
+                        afficher(f"  [{existant + nouveau}/{total}] Existe par code/ref/nom (ID: {check_dest_id})")
                     continue
                 
-                # 3. Créer seulement si n'existe pas
+                # 3. N'existe PAS : CRÉER
                 # Préparer données
                 data = data_preparer(rec, self.mappings)
                 
                 if data is None:
-                    # Skip si dépendances manquantes
-                    erreurs += 1
+                    # Skip seulement si dépendances critiques manquantes
+                    if MODE_TEST:
+                        afficher(f"  SKIP: Dependances manquantes")
+                    skip += 1
                     continue
+                
+                try:
+                    dest_id = self.conn.executer_destination(model, 'create', data)
                     
-                    try:
-                        dest_id = self.conn.executer_destination(model, 'create', data)
-                        
-                        # Copier external_id
+                    # Copier external_id si disponible
+                    if ext_id:
                         self.copier_external_id_rapide(model, dest_id, source_id)
-                        
-                        # Mettre à jour les index pour éviter doublons dans le même lot
-                        if model == 'account.account':
-                            if rec.get('code'):
-                                dest_by_code[rec['code']] = dest_id
-                            if rec.get('name'):
-                                dest_by_name[rec['name']] = dest_id
-                        elif model == 'account.journal' and rec.get('code'):
+                    
+                    # Mettre à jour les index pour éviter doublons dans le même lot
+                    if model == 'account.account':
+                        if rec.get('code'):
                             dest_by_code[rec['code']] = dest_id
-                        elif model == 'res.partner':
-                            if rec.get('ref'):
-                                dest_by_ref[rec['ref']] = dest_id
-                            if rec.get('email'):
-                                dest_by_email[rec['email']] = dest_id
-                            if rec.get('name'):
-                                dest_by_name[rec['name']] = dest_id
-                        elif model == 'res.users' and rec.get('login'):
-                            dest_by_login[rec['login']] = dest_id
-                        elif model == 'product.template':
-                            if rec.get('default_code'):
-                                dest_by_code[rec['default_code']] = dest_id
-                            if rec.get('name'):
-                                dest_by_name[rec['name']] = dest_id
-                        
-                        mapping[source_id] = dest_id
-                        dest_ids.add(dest_id)
-                        nouveau += 1
-                        
-                        if MODE_TEST:
-                            afficher(f"  [{existant + nouveau}/{total}] Cree (ID: {dest_id})")
-                        
-                    except Exception as e:
+                        if rec.get('name'):
+                            dest_by_name[rec['name']] = dest_id
+                    elif model == 'account.journal' and rec.get('code'):
+                        dest_by_code[rec['code']] = dest_id
+                    elif model == 'res.partner':
+                        if rec.get('ref'):
+                            dest_by_ref[rec['ref']] = dest_id
+                        if rec.get('email'):
+                            dest_by_email[rec['email']] = dest_id
+                        if rec.get('name'):
+                            dest_by_name[rec['name']] = dest_id
+                    elif model == 'res.users' and rec.get('login'):
+                        dest_by_login[rec['login']] = dest_id
+                    elif model == 'product.template':
+                        if rec.get('default_code'):
+                            dest_by_code[rec['default_code']] = dest_id
+                        if rec.get('name'):
+                            dest_by_name[rec['name']] = dest_id
+                    
+                    mapping[source_id] = dest_id
+                    dest_ids.add(dest_id)
+                    nouveau += 1
+                    crees += 1
+                    
+                    if MODE_TEST:
+                        afficher(f"  [{existant + nouveau}/{total}] Cree (ID: {dest_id})")
+                    
+                except Exception as e:
                         if MODE_TEST:
                             afficher(f"  ERREUR: {str(e)[:60]}")
+                        else:
+                            # En production, logger les erreurs critiques
+                            if erreurs < 10:  # Afficher les 10 premières erreurs
+                                afficher(f"  ERREUR sur {rec.get('name', rec.get('code', 'ID:' + str(source_id)))}: {str(e)[:80]}")
                         erreurs += 1
         
         duree = (datetime.now() - debut).total_seconds()
         vitesse = total / duree if duree > 0 else 0
         
-        afficher(f"\n  RESULTAT: {nouveau} nouveaux, {existant} existants, {erreurs} erreurs")
+        non_mappes = total - len(mapping)
+        
+        afficher(f"\n  RESULTAT:")
+        afficher(f"    - Via external_id  : {via_ext_id}")
+        afficher(f"    - Via code/nom     : {via_champ}")
+        afficher(f"    - Crees            : {crees}")
+        afficher(f"    - Erreurs          : {erreurs}")
+        afficher(f"    - Skip             : {skip}")
+        afficher(f"    - TOTAL MAPPES     : {len(mapping)}/{total}")
         afficher(f"  DUREE: {duree:.1f}s ({vitesse:.0f} enreg/s)")
+        
+        if non_mappes > 0:
+            afficher(f"  ATTENTION: {non_mappes} enregistrements traites mais NON MAPPES !")
         
         # Sauvegarder
         nom_fichier = model.replace('.', '_')
@@ -395,6 +420,10 @@ class MigrationOptimisee:
     
     def preparer_produit(self, rec, mappings):
         """Prépare données produit"""
+        # Vérifier que le nom existe
+        if not rec.get('name'):
+            return None  # Skip produits sans nom
+        
         product_type = rec.get('type', 'consu')
         is_storable = (product_type == 'product')
         
@@ -405,6 +434,7 @@ class MigrationOptimisee:
             'name': rec['name'],
             'type': product_type,
             'list_price': rec.get('list_price', 0.0),
+            'active': rec.get('active', True),
         }
         
         if is_storable:
