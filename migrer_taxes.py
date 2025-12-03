@@ -58,7 +58,11 @@ for idx, rec in enumerate(src, 1):
     source_id = rec['id']
     name = rec.get('name', '')
     
-    print(f"{idx}/{len(src)} - {name[:50]}")
+    try:
+        print(f"{idx}/{len(src)} - {name[:50]}")
+    except UnicodeEncodeError:
+        name_clean = name.encode('ascii', 'replace').decode('ascii')
+        print(f"{idx}/{len(src)} - {name_clean[:50]}")
     
     # Déjà mappé ?
     if source_id in mapping:

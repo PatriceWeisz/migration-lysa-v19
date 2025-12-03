@@ -38,7 +38,12 @@ print(f"DESTINATION: {len(dst)}\n")
 nouveaux = existants = 0
 for idx, rec in enumerate(src, 1):
     name = rec.get('name', '')
-    print(f"{idx}/{len(src)} - {name}")
+    # Nettoyer le nom pour l'affichage Windows
+    try:
+        print(f"{idx}/{len(src)} - {name}")
+    except UnicodeEncodeError:
+        name_clean = name.encode('ascii', 'replace').decode('ascii')
+        print(f"{idx}/{len(src)} - {name_clean}")
     
     if rec['id'] in mapping:
         print("  -> Deja mappe")
@@ -56,6 +61,10 @@ for idx, rec in enumerate(src, 1):
         for k in list(data.keys()):
             if isinstance(data[k], (list, tuple)) and len(data[k]) == 2:
                 data[k] = data[k][0]
+        
+        # user_id est OBLIGATOIRE en v19
+        if 'user_id' not in data or not data['user_id']:
+            data['user_id'] = 2  # Admin par défaut
         
         dest_id = conn.executer_destination('project.project', 'create', data)
         mapping[rec['id']] = dest_id

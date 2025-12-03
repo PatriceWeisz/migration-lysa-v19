@@ -34,7 +34,11 @@ print(f"DESTINATION: {len(dst)}\n")
 nouveaux = existants = 0
 for idx, rec in enumerate(src, 1):
     name = rec.get('name', '')
-    print(f"{idx}/{len(src)} - {name}")
+    try:
+        print(f"{idx}/{len(src)} - {name}")
+    except UnicodeEncodeError:
+        name_clean = name.encode('ascii', 'replace').decode('ascii')
+        print(f"{idx}/{len(src)} - {name_clean}")
     
     if rec['id'] in mapping:
         print("  -> Deja mappe")
