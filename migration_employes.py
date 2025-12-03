@@ -13,6 +13,10 @@ from pathlib import Path
 from datetime import datetime
 from connexion_double_v19 import ConnexionDoubleV19
 
+# MODE TEST : Limiter à quelques employés
+TEST_MODE = True
+TEST_LIMIT = 5
+
 # Configuration logging
 logging.basicConfig(
     level=logging.INFO,
@@ -37,6 +41,8 @@ class MigrationEmployes:
         self.employe_mapping = {}
         self.partner_mapping = {}
         self.user_mapping = {}
+        self.dept_mapping = {}
+        self.job_mapping = {}
         self.logs_dir = Path('logs')
         self.logs_dir.mkdir(exist_ok=True)
     
@@ -68,6 +74,34 @@ class MigrationEmployes:
             logging.warning("ATTENTION Fichier user_mapping.json non trouve")
             return False
     
+    def charger_dept_mapping(self):
+        """Charge le mapping des départements"""
+        mapping_file = self.logs_dir / 'department_mapping.json'
+        
+        if mapping_file.exists():
+            with open(mapping_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                self.dept_mapping = {int(k): v for k, v in data.items()}
+            logging.info(f"OK Mapping departements charge : {len(self.dept_mapping)}")
+            return True
+        else:
+            logging.warning("ATTENTION Fichier department_mapping.json non trouve")
+            return False
+    
+    def charger_job_mapping(self):
+        """Charge le mapping des postes"""
+        mapping_file = self.logs_dir / 'job_mapping.json'
+        
+        if mapping_file.exists():
+            with open(mapping_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                self.job_mapping = {int(k): v for k, v in data.items()}
+            logging.info(f"OK Mapping postes charge : {len(self.job_mapping)}")
+            return True
+        else:
+            logging.warning("ATTENTION Fichier job_mapping.json non trouve")
+            return False
+    
     def sauvegarder_employe_mapping(self):
         """Sauvegarde le mapping des employés"""
         mapping_file = self.logs_dir / 'employe_mapping.json'
@@ -79,16 +113,28 @@ class MigrationEmployes:
         """Migre les employés"""
         print("\n" + "="*70)
         print("MIGRATION DES EMPLOYES")
+        if TEST_MODE:
+            print(f"ATTENTION MODE TEST : Limite a {TEST_LIMIT} employes")
         print("="*70)
         
         # Récupérer employés source
+        kwargs = {
+            'fields': ['name', 'work_email', 'work_phone', 'mobile_phone',
+                      'job_title', 'department_id', 'parent_id', 'coach_id',
+                      'address_id', 'user_id', 'active', 'address_home_id',
+                      'gender', 'marital', 'birthday', 'place_of_birth',
+                      'country_of_birth', 'country_id', 'certificate', 
+                      'identification_id', 'tz', 'job_id', 'work_location_id']
+        }
+        
+        if TEST_MODE:
+            kwargs['limit'] = TEST_LIMIT
+        
         employes_source = self.conn.executer_source(
             'hr.employee',
             'search_read',
             [],
-            fields=['name', 'work_email', 'work_phone', 'mobile_phone',
-                   'job_title', 'department_id', 'parent_id', 'coach_id',
-                   'address_id', 'user_id', 'active']
+            **kwargs
         )
         
         self.stats['total'] = len(employes_source)
@@ -163,6 +209,65 @@ class MigrationEmployes:
                 if user_source_id in self.user_mapping:
                     data['user_id'] = self.user_mapping[user_source_id]
             
+            # Département
+            if emp.get('department_id'):
+                dept_source_id = emp['department_id'][0]
+                if dept_source_id in self.dept_mapping:
+                    data['department_id'] = self.dept_mapping[dept_source_id]
+            
+            # Poste/Fonction
+            if emp.get('job_id'):
+                job_source_id = emp['job_id'][0]
+                if job_source_id in self.job_mapping:
+                    data['job_id'] = self.job_mapping[job_source_id]
+            
+            # Responsable hiérarchique (parent)
+            if emp.get('parent_id'):
+                parent_source_id = emp['parent_id'][0]
+                if parent_source_id in self.employe_mapping:
+                    data['parent_id'] = self.employe_mapping[parent_source_id]
+            
+            # Coach/Mentor
+            if emp.get('coach_id'):
+                coach_source_id = emp['coach_id'][0]
+                if coach_source_id in self.employe_mapping:
+                    data['coach_id'] = self.employe_mapping[coach_source_id]
+            
+            # Adresse personnelle
+            if emp.get('address_home_id'):
+                home_source_id = emp['address_home_id'][0]
+                if home_source_id in self.partner_mapping:
+                    data['address_home_id'] = self.partner_mapping[home_source_id]
+            
+            # Informations personnelles
+            if emp.get('gender'):
+                data['gender'] = emp['gender']
+            
+            if emp.get('marital'):
+                data['marital'] = emp['marital']
+            
+            if emp.get('birthday'):
+                data['birthday'] = emp['birthday']
+            
+            if emp.get('place_of_birth'):
+                data['place_of_birth'] = emp['place_of_birth']
+            
+            if emp.get('certificate'):
+                data['certificate'] = emp['certificate']
+            
+            if emp.get('identification_id'):
+                data['identification_id'] = emp['identification_id']
+            
+            if emp.get('tz'):
+                data['tz'] = emp['tz']
+            
+            # Pays
+            if emp.get('country_id'):
+                data['country_id'] = emp['country_id'][0]
+            
+            if emp.get('country_of_birth'):
+                data['country_of_birth'] = emp['country_of_birth'][0]
+            
             try:
                 # Créer employé
                 dest_id = self.conn.executer_destination(
@@ -200,6 +305,10 @@ class MigrationEmployes:
         if self.stats['total'] > 0:
             taux = ((self.stats['migres'] + self.stats['existants']) / self.stats['total']) * 100
             print(f"Taux de succes    : {taux:.1f}%")
+        
+        if TEST_MODE:
+            print(f"\nATTENTION MODE TEST : Seulement {TEST_LIMIT} employes traites")
+            print("   Pour tout migrer, mettre TEST_MODE = False dans le script")
     
     def executer(self):
         """Exécute la migration"""
@@ -210,13 +319,23 @@ class MigrationEmployes:
         print("="*70)
         
         # Connexion
+        print("\nConnexion aux bases de donnees...")
         if not self.conn.connecter_tout():
             print("X Echec de connexion")
             return False
         
+        print("OK Connexion reussie !")
+        
         # Charger mappings
-        self.charger_partner_mapping()
-        self.charger_user_mapping()
+        print("\nChargement des mappings...")
+        if self.charger_partner_mapping():
+            print(f"OK {len(self.partner_mapping)} partenaires mappes")
+        if self.charger_user_mapping():
+            print(f"OK {len(self.user_mapping)} utilisateurs mappes")
+        if self.charger_dept_mapping():
+            print(f"OK {len(self.dept_mapping)} departements mappes")
+        if self.charger_job_mapping():
+            print(f"OK {len(self.job_mapping)} postes mappes")
         
         # Migrer employés
         self.migrer_employes()

@@ -12,6 +12,7 @@ from datetime import datetime
 from connexion_double_v19 import ConnexionDoubleV19
 from utils.logger import setup_logger
 from utils.helpers import ProgressTracker, chunk_list, format_number
+from utils.external_id_manager import ExternalIdManager
 from config_v19 import MIGRATION_PARAMS
 
 # Configuration du logger
@@ -23,10 +24,12 @@ class MigrationPlanComptable:
     
     def __init__(self, connexion):
         self.connexion = connexion
+        self.ext_id_mgr = ExternalIdManager(connexion)
         self.stats = {
             'total_source': 0,
             'total_dest_avant': 0,
             'migres': 0,
+            'existants': 0,
             'erreurs': 0,
             'ignores': 0,
         }
@@ -259,14 +262,31 @@ class MigrationPlanComptable:
     def migrer_compte(self, compte):
         """Migre un seul compte"""
         try:
-            # Vérifier si existe déjà
+            source_id = compte['id']
+            
+            # 1. Vérifier si existe déjà via external_id
+            existe, dest_id, ext_id = self.ext_id_mgr.verifier_existe('account.account', source_id)
+            if existe:
+                if ext_id:
+                    logger.debug(f"Compte '{compte['code']}' existe via external_id {ext_id['module']}.{ext_id['name']} (ID: {dest_id})")
+                else:
+                    logger.debug(f"Compte '{compte['code']}' existe (ID: {dest_id})")
+                self.account_mapping[source_id] = dest_id
+                self.stats['existants'] += 1
+                return dest_id
+            
+            # 2. Sinon vérifier par code (doublon)
             if MIGRATION_PARAMS.get('VERIFIER_DOUBLONS', True):
                 existing_id = self.verifier_existence(compte)
                 if existing_id:
                     logger.debug(f"Compte '{compte['code']}' existe déjà (ID: {existing_id})")
+                    # Copier l'external_id de la source si disponible
+                    if ext_id:
+                        self.ext_id_mgr.copier_external_id('account.account', existing_id, source_id)
+                        logger.debug(f"  External_id copié: {ext_id['module']}.{ext_id['name']}")
                     # Stocker le mapping
-                    self.account_mapping[compte['id']] = existing_id
-                    self.stats['ignores'] += 1
+                    self.account_mapping[source_id] = existing_id
+                    self.stats['existants'] += 1
                     return existing_id
             
             # Mode simulation
@@ -285,10 +305,16 @@ class MigrationPlanComptable:
                 data
             )
             
-            # Stocker le mapping
-            self.account_mapping[compte['id']] = new_id
+            # Copier l'external_id de la source
+            ext_id = self.ext_id_mgr.get_external_id_from_source('account.account', source_id)
+            if ext_id:
+                self.ext_id_mgr.copier_external_id('account.account', new_id, source_id)
+                logger.debug(f"  External_id copié: {ext_id['module']}.{ext_id['name']}")
             
-            logger.debug(f"✓ Compte '{compte['code']}' migré (ID: {new_id})")
+            # Stocker le mapping
+            self.account_mapping[source_id] = new_id
+            
+            logger.debug(f"OK Compte '{compte['code']}' migre (ID: {new_id})")
             self.stats['migres'] += 1
             return new_id
             

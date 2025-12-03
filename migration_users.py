@@ -14,6 +14,10 @@ from pathlib import Path
 from datetime import datetime
 from connexion_double_v19 import ConnexionDoubleV19
 
+# MODE TEST : Limiter à quelques utilisateurs
+TEST_MODE = True
+TEST_LIMIT = 5
+
 # Configuration logging
 logging.basicConfig(
     level=logging.INFO,
@@ -116,18 +120,27 @@ class MigrationUsers:
         """Migre les utilisateurs"""
         print("\n" + "="*70)
         print("MIGRATION DES UTILISATEURS")
+        if TEST_MODE:
+            print(f"ATTENTION MODE TEST : Limite a {TEST_LIMIT} utilisateurs")
         print("="*70)
         print("ATTENTION: Les mots de passe ne sont PAS migres")
         print("Les utilisateurs devront reinitialiser leurs mots de passe")
         print("="*70)
         
         # Récupérer utilisateurs source
+        kwargs = {
+            'fields': ['name', 'login', 'email', 'partner_id', 'active',
+                      'company_id', 'company_ids', 'lang', 'tz', 'groups_id']
+        }
+        
+        if TEST_MODE:
+            kwargs['limit'] = TEST_LIMIT
+        
         users_source = self.conn.executer_source(
             'res.users',
             'search_read',
             [('id', '!=', 1)],  # Exclure l'admin (ID=1)
-            fields=['name', 'login', 'email', 'partner_id', 'active',
-                   'company_id', 'company_ids', 'lang', 'tz', 'groups_id']
+            **kwargs
         )
         
         self.stats['total'] = len(users_source)
@@ -253,6 +266,10 @@ class MigrationUsers:
         if self.stats['total'] > 0:
             taux = ((self.stats['migres'] + self.stats['existants']) / self.stats['total']) * 100
             print(f"Taux de succes    : {taux:.1f}%")
+        
+        if TEST_MODE:
+            print(f"\nATTENTION MODE TEST : Seulement {TEST_LIMIT} utilisateurs traites")
+            print("   Pour tout migrer, mettre TEST_MODE = False dans le script")
         
         if self.stats['migres'] > 0:
             print("\n" + "="*70)

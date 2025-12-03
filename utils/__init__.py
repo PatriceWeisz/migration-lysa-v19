@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Package utilitaires pour migration v19
+Utilitaires pour la migration Odoo v16 -> v19
 """
 
-from .logger import setup_logger, get_logger
-from .helpers import *
+from .external_id_manager import ExternalIdManager
 
-__all__ = ['setup_logger', 'get_logger']
-
+__all__ = ['ExternalIdManager']

@@ -219,13 +219,13 @@ class ConnexionDoubleV19:
             version_str = version.get('server_version', '')
             
             if '19.0' in version_str:
-                print(f"✓ Version v19 confirmée: {version_str}")
+                print(f"OK Version v19 confirmee: {version_str}")
                 return True
             else:
-                print(f"✗ Version incorrecte: {version_str} (v19 attendue)")
+                print(f"ERREUR Version incorrecte: {version_str} (v19 attendue)")
                 return False
         except Exception as e:
-            print(f"✗ Erreur vérification version: {e}")
+            print(f"ERREUR Verification version: {e}")
             return False
     
     def afficher_stats(self):
