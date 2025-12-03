@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""MIGRATION PROJETS"""
+"""MIGRATION PLANS ANALYTIQUES"""
 import sys, os, json
 from pathlib import Path
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 
 print("="*70)
-print("MIGRATION: PROJETS")
+print("MIGRATION: PLANS ANALYTIQUES")
 print("="*70)
 print("Chargement des modules... (10-15 secondes)")
 print("="*70)
@@ -22,33 +22,22 @@ if not conn.connecter_tout():
 print("OK Connexion\n")
 
 LOGS_DIR = Path('logs')
-mapping_file = LOGS_DIR / 'project_mapping.json'
+mapping_file = LOGS_DIR / 'analytic_plan_mapping.json'
 mapping = json.load(open(mapping_file)) if mapping_file.exists() else {}
 mapping = {int(k): v for k, v in mapping.items()}
-print(f"Mapping projets: {len(mapping)}")
+print(f"Mapping: {len(mapping)}")
 
-# Charger mapping utilisateurs
-user_mapping_file = LOGS_DIR / 'user_mapping.json'
-if user_mapping_file.exists():
-    with open(user_mapping_file, 'r') as f:
-        user_mapping = json.load(f)
-    print(f"Mapping utilisateurs: {len(user_mapping)}")
-else:
-    print("Mapping utilisateurs: AUCUN (user_id=2 par defaut)")
-    user_mapping = {}
-
-src = conn.executer_source('project.project', 'search_read', [],
-                           fields=['name', 'partner_id', 'user_id', 'company_id', 'active'])
+src = conn.executer_source('account.analytic.plan', 'search_read', [],
+                           fields=['name', 'description', 'company_id'])
 print(f"SOURCE: {len(src)}")
 
-dst = conn.executer_destination('project.project', 'search_read', [], fields=['name'])
+dst = conn.executer_destination('account.analytic.plan', 'search_read', [], fields=['name'])
 dst_index = {d['name']: d['id'] for d in dst if d.get('name')}
 print(f"DESTINATION: {len(dst)}\n")
 
 nouveaux = existants = 0
 for idx, rec in enumerate(src, 1):
     name = rec.get('name', '')
-    # Nettoyer le nom pour l'affichage Windows
     try:
         print(f"{idx}/{len(src)} - {name}")
     except UnicodeEncodeError:
@@ -68,32 +57,11 @@ for idx, rec in enumerate(src, 1):
     
     try:
         data = {k: v for k, v in rec.items() if k != 'id' and v not in (None, False, '')}
-        
-        # Traiter user_id AVANT de nettoyer les many2one
-        # NOTE: Les utilisateurs inactifs ne sont pas migrés,
-        # on utilise l'admin (ID 2) par défaut
-        src_user_id = rec.get('user_id')
-        if src_user_id:
-            if isinstance(src_user_id, (list, tuple)):
-                src_user_id = src_user_id[0]
-            
-            # Chercher dans le mapping utilisateurs
-            if str(src_user_id) in user_mapping:
-                data['user_id'] = user_mapping[str(src_user_id)]
-            else:
-                # Utilisateur pas migré (probablement inactif) -> admin
-                data['user_id'] = 2
-        else:
-            data['user_id'] = 2
-        
-        # Nettoyer les autres relations many2one
         for k in list(data.keys()):
-            if k == 'user_id':
-                continue  # Déjà traité
             if isinstance(data[k], (list, tuple)) and len(data[k]) == 2:
                 data[k] = data[k][0]
         
-        dest_id = conn.executer_destination('project.project', 'create', data)
+        dest_id = conn.executer_destination('account.analytic.plan', 'create', data)
         mapping[rec['id']] = dest_id
         dst_index[name] = dest_id
         print(f"  -> CREE (ID: {dest_id})")

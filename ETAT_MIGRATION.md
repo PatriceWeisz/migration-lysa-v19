@@ -44,13 +44,20 @@
 
 ---
 
+### Modules Récemment Migrés
+
+| Module | Script | Mappés | Status |
+|--------|--------|--------|--------|
+| **Projets** | ✅ `migrer_projets.py` | 9/9 | ✅ 100% |
+| **Plans analytiques** | ✅ `migrer_plans_analytiques.py` | Prêt | ⏳ À lancer |
+| **Utilisateurs** | ✅ `migrer_utilisateurs.py` | 1/1 | ✅ 100% (actifs) |
+
 ### Modules À Migrer (Scripts créés, prêts)
 
 | Module | Script | Source | Notes |
 |--------|--------|--------|-------|
-| **Plans analytiques** | ✅ À créer | 2 | Requis avant comptes analytiques |
 | **Équipes commerciales** | ✅ `migrer_equipes_commerciales.py` | 40 | Prêt |
-| **Projets** | ✅ `migrer_projets.py` | 9 | Prêt |
+| **Comptes analytiques** | ✅ `migrer_comptes_analytiques.py` | 15 | Dépend: plans analytiques |
 | **Étapes tâches** | ⏳ À créer | 40 | - |
 | **Comptes bancaires** | ⏳ À créer | 1 | - |
 

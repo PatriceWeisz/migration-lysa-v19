@@ -105,26 +105,30 @@
 
 ## ORDRE D'EXÉCUTION
 
-### ÉTAPE 1 : Modules de base (sans dépendances)
-1. Taxes
-2. Étiquettes contact
-3. Listes de prix
-4. Plans analytiques
-5. Types de congés
+### ÉTAPE 1 : Utilisateurs (PRIORITÉ - requis par beaucoup de modules)
+1. Utilisateurs (avec leurs groupes de permissions)
+   - IMPORTANT: Les projets, produits, équipes commerciales référencent des utilisateurs
 
-### ÉTAPE 2 : Modules avec dépendances légères
-6. Comptes analytiques (dépend: plans analytiques)
-7. Emplacements stock (dépend: entrepôts)
-8. Types opérations (dépend: entrepôts, emplacements)
-9. Équipes commerciales
-10. Projets
+### ÉTAPE 2 : Modules de base (sans dépendances)
+2. Taxes
+3. Étiquettes contact
+4. Listes de prix
+5. Plans analytiques
+6. Types de congés
 
-### ÉTAPE 3 : Vérification complète
+### ÉTAPE 3 : Modules avec dépendances légères
+7. Comptes analytiques (dépend: plans analytiques)
+8. Emplacements stock (dépend: entrepôts)
+9. Types opérations (dépend: entrepôts, emplacements)
+10. Équipes commerciales (dépend: utilisateurs)
+11. Projets (dépend: utilisateurs)
+
+### ÉTAPE 4 : Vérification complète
 - Comparer comptages source vs destination
 - Vérifier intégrité des mappings
 - Tester quelques enregistrements manuellement
 
-### ÉTAPE 4 : Transactions (après validation complète des bases)
+### ÉTAPE 5 : Transactions (après validation complète des bases)
 - Ordre chronologique recommandé
 - Par lots avec vérification
 - Sauvegarde des mappings à chaque étape

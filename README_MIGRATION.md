@@ -95,6 +95,29 @@ python verifier_mappings_existants.py
 
 ---
 
+## ⚠️ ORDRE DES DÉPENDANCES - IMPORTANT
+
+**RESPECTER CET ORDRE :**
+
+1. **Utilisateurs** EN PREMIER (requis par projets, produits, équipes)
+2. **Plans analytiques** avant **Comptes analytiques**
+3. **Entrepôts** avant **Emplacements** et **Types d'opérations**
+4. **Partenaires** et **Produits** avant **Transactions**
+
+**Exemple de mauvais ordre :**
+```bash
+python migrer_projets.py         # ❌ ERREUR: les projets référencent des utilisateurs
+python migrer_utilisateurs.py    # Trop tard!
+```
+
+**Exemple de bon ordre :**
+```bash
+python migrer_utilisateurs.py    # ✅ D'abord les utilisateurs
+python migrer_projets.py          # ✅ Puis les projets
+```
+
+---
+
 ## 📝 Créer un nouveau script de migration
 
 Modèle à suivre (voir `migrer_taxes.py`) :

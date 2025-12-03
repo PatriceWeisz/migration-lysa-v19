@@ -25,7 +25,13 @@ LOGS_DIR.mkdir(exist_ok=True)
 
 MODULES_BASE = [
     {
-        'phase': '1. Comptabilité',
+        'phase': '1. Utilisateurs et RH',
+        'modules': [
+            {'script': 'migrer_utilisateurs.py', 'nom': 'Utilisateurs', 'total_attendu': 1},
+        ]
+    },
+    {
+        'phase': '2. Comptabilité',
         'modules': [
             {'script': 'migrer_taxes.py', 'nom': 'Taxes', 'total_attendu': 31},
             {'script': 'migrer_plans_analytiques.py', 'nom': 'Plans analytiques', 'total_attendu': 2},
@@ -33,33 +39,33 @@ MODULES_BASE = [
         ]
     },
     {
-        'phase': '2. Partenaires',
+        'phase': '3. Partenaires',
         'modules': [
             {'script': 'migrer_etiquettes_contact.py', 'nom': 'Étiquettes contact', 'total_attendu': 16},
             {'script': 'migrer_comptes_bancaires.py', 'nom': 'Comptes bancaires', 'total_attendu': 1},
         ]
     },
     {
-        'phase': '3. Produits',
+        'phase': '4. Produits',
         'modules': [
             {'script': 'migrer_listes_prix.py', 'nom': 'Listes de prix', 'total_attendu': 57},
         ]
     },
     {
-        'phase': '4. Stock',
+        'phase': '5. Stock',
         'modules': [
             {'script': 'migrer_emplacements.py', 'nom': 'Emplacements', 'total_attendu': 83},
             {'script': 'migrer_types_operations.py', 'nom': 'Types opérations', 'total_attendu': 133},
         ]
     },
     {
-        'phase': '5. Ventes',
+        'phase': '6. Ventes',
         'modules': [
             {'script': 'migrer_equipes_commerciales.py', 'nom': 'Équipes commerciales', 'total_attendu': 40},
         ]
     },
     {
-        'phase': '6. Projets',
+        'phase': '7. Projets',
         'modules': [
             {'script': 'migrer_projets.py', 'nom': 'Projets', 'total_attendu': 9},
         ]
