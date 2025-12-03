@@ -144,10 +144,43 @@ class MigrationOptimisee:
         total = len(records)
         afficher(f"  OK {total} enregistrements")
         
-        # Récupérer les existants en une seule requête
+        # Récupérer les existants avec champs clés
         afficher(f"  Recuperation DESTINATION...")
+        
+        # Champs à récupérer selon le modèle pour vérifier doublons
+        champs_dest = ['id']
+        if model == 'account.account':
+            champs_dest.append('code')
+        elif model == 'res.partner':
+            champs_dest.extend(['ref', 'email'])
+        elif model == 'account.journal':
+            champs_dest.append('code')
+        elif model == 'res.users':
+            champs_dest.append('login')
+        elif model == 'product.template':
+            champs_dest.append('default_code')
+        
         dest_records = self.conn.executer_destination(model, 'search_read', [],
-                                                      fields=['id'])
+                                                      fields=champs_dest)
+        
+        # Créer index par champ unique
+        dest_by_code = {}
+        dest_by_ref = {}
+        dest_by_email = {}
+        dest_by_login = {}
+        
+        for rec in dest_records:
+            if 'code' in rec and rec['code']:
+                dest_by_code[rec['code']] = rec['id']
+            if 'ref' in rec and rec['ref']:
+                dest_by_ref[rec['ref']] = rec['id']
+            if 'email' in rec and rec['email']:
+                dest_by_email[rec['email']] = rec['id']
+            if 'login' in rec and rec['login']:
+                dest_by_login[rec['login']] = rec['id']
+            if 'default_code' in rec and rec['default_code']:
+                dest_by_code[rec['default_code']] = rec['id']
+        
         dest_ids = {r['id'] for r in dest_records}
         afficher(f"  OK {len(dest_ids)} enregistrements existants")
         
@@ -166,28 +199,71 @@ class MigrationOptimisee:
             for rec in batch:
                 source_id = rec['id']
                 
-                # Vérifier via cache
+                # 1. Vérifier via cache external_id
                 existe, dest_id, ext_id = self.verifier_existe_rapide(model, source_id)
                 
                 if existe:
                     mapping[source_id] = dest_id
                     existant += 1
                     if MODE_TEST:
-                        afficher(f"  [{existant + nouveau}/{total}] Existe (ID: {dest_id})")
-                else:
-                    # Préparer données
-                    data = data_preparer(rec, self.mappings)
-                    
-                    if data is None:
-                        # Skip si dépendances manquantes
-                        erreurs += 1
-                        continue
+                        afficher(f"  [{existant + nouveau}/{total}] Existe via ext_id (ID: {dest_id})")
+                    continue
+                
+                # 2. Vérifier par champ unique (code, ref, login, email...)
+                check_dest_id = None
+                
+                if model == 'account.account' and rec.get('code') in dest_by_code:
+                    check_dest_id = dest_by_code[rec['code']]
+                elif model == 'account.journal' and rec.get('code') in dest_by_code:
+                    check_dest_id = dest_by_code[rec['code']]
+                elif model == 'res.partner':
+                    if rec.get('ref') and rec['ref'] in dest_by_ref:
+                        check_dest_id = dest_by_ref[rec['ref']]
+                    elif rec.get('email') and rec['email'] in dest_by_email:
+                        check_dest_id = dest_by_email[rec['email']]
+                elif model == 'res.users' and rec.get('login') in dest_by_login:
+                    check_dest_id = dest_by_login[rec['login']]
+                elif model == 'product.template' and rec.get('default_code') in dest_by_code:
+                    check_dest_id = dest_by_code[rec['default_code']]
+                
+                if check_dest_id:
+                    # Existe déjà, copier juste l'external_id
+                    self.copier_external_id_rapide(model, check_dest_id, source_id)
+                    mapping[source_id] = check_dest_id
+                    existant += 1
+                    if MODE_TEST:
+                        afficher(f"  [{existant + nouveau}/{total}] Existe par code/ref (ID: {check_dest_id})")
+                    continue
+                
+                # 3. Créer seulement si n'existe pas
+                # Préparer données
+                data = data_preparer(rec, self.mappings)
+                
+                if data is None:
+                    # Skip si dépendances manquantes
+                    erreurs += 1
+                    continue
                     
                     try:
                         dest_id = self.conn.executer_destination(model, 'create', data)
                         
                         # Copier external_id
                         self.copier_external_id_rapide(model, dest_id, source_id)
+                        
+                        # Mettre à jour les index pour éviter doublons dans le même lot
+                        if model == 'account.account' and rec.get('code'):
+                            dest_by_code[rec['code']] = dest_id
+                        elif model == 'account.journal' and rec.get('code'):
+                            dest_by_code[rec['code']] = dest_id
+                        elif model == 'res.partner':
+                            if rec.get('ref'):
+                                dest_by_ref[rec['ref']] = dest_id
+                            if rec.get('email'):
+                                dest_by_email[rec['email']] = dest_id
+                        elif model == 'res.users' and rec.get('login'):
+                            dest_by_login[rec['login']] = dest_id
+                        elif model == 'product.template' and rec.get('default_code'):
+                            dest_by_code[rec['default_code']] = dest_id
                         
                         mapping[source_id] = dest_id
                         dest_ids.add(dest_id)
@@ -215,10 +291,23 @@ class MigrationOptimisee:
         self.mappings[model] = mapping
         return mapping
     
+    def verifier_existence_par_champ(self, model, field, value):
+        """Vérifie si un enregistrement existe par un champ unique"""
+        try:
+            results = self.conn.executer_destination(model, 'search',
+                                                    [(field, '=', value)])
+            return results[0] if results else None
+        except:
+            return None
+    
     def preparer_compte(self, rec, mappings):
-        """Prépare données compte"""
+        """Prépare données compte - AVEC vérification du code"""
+        # IMPORTANT: Vérifier d'abord si le code existe déjà
+        code = rec['code']
+        
+        # Cette vérification sera faite AVANT la création dans migrer_module_optimise
         return {
-            'code': rec['code'],
+            'code': code,
             'name': rec['name'],
             'account_type': rec.get('account_type', 'asset_current'),
             'reconcile': rec.get('reconcile', False),
