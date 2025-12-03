@@ -157,15 +157,15 @@ class MigrationOptimisee:
         # Champs à récupérer selon le modèle pour vérifier doublons
         champs_dest = ['id']
         if model == 'account.account':
-            champs_dest.append('code')
+            champs_dest.extend(['code', 'name'])
         elif model == 'res.partner':
-            champs_dest.extend(['ref', 'email'])
+            champs_dest.extend(['ref', 'email', 'name'])
         elif model == 'account.journal':
             champs_dest.append('code')
         elif model == 'res.users':
             champs_dest.append('login')
         elif model == 'product.template':
-            champs_dest.append('default_code')
+            champs_dest.extend(['default_code', 'name'])
         
         dest_records = self.conn.executer_destination(model, 'search_read', [],
                                                       fields=champs_dest)
@@ -175,6 +175,7 @@ class MigrationOptimisee:
         dest_by_ref = {}
         dest_by_email = {}
         dest_by_login = {}
+        dest_by_name = {}
         
         for rec in dest_records:
             if 'code' in rec and rec['code']:
@@ -187,6 +188,8 @@ class MigrationOptimisee:
                 dest_by_login[rec['login']] = rec['id']
             if 'default_code' in rec and rec['default_code']:
                 dest_by_code[rec['default_code']] = rec['id']
+            if 'name' in rec and rec['name']:
+                dest_by_name[rec['name']] = rec['id']
         
         dest_ids = {r['id'] for r in dest_records}
         afficher(f"  OK {len(dest_ids)} enregistrements existants")
@@ -216,26 +219,44 @@ class MigrationOptimisee:
                         afficher(f"  [{existant + nouveau}/{total}] Existe via ext_id (ID: {dest_id})")
                     continue
                 
-                # 2. Vérifier par champ unique (code, ref, login, email...)
+                # 2. Vérifier par champ unique (code, ref, login, email, name...)
                 check_dest_id = None
                 
-                if model == 'account.account' and rec.get('code') in dest_by_code:
-                    check_dest_id = dest_by_code[rec['code']]
-                elif model == 'account.journal' and rec.get('code') in dest_by_code:
-                    check_dest_id = dest_by_code[rec['code']]
+                if model == 'account.account':
+                    if rec.get('code') and rec['code'] in dest_by_code:
+                        check_dest_id = dest_by_code[rec['code']]
+                    elif rec.get('name') and rec['name'] in dest_by_name:
+                        check_dest_id = dest_by_name[rec['name']]
+                
+                elif model == 'account.journal':
+                    if rec.get('code') and rec['code'] in dest_by_code:
+                        check_dest_id = dest_by_code[rec['code']]
+                
                 elif model == 'res.partner':
                     if rec.get('ref') and rec['ref'] in dest_by_ref:
                         check_dest_id = dest_by_ref[rec['ref']]
                     elif rec.get('email') and rec['email'] in dest_by_email:
                         check_dest_id = dest_by_email[rec['email']]
-                elif model == 'res.users' and rec.get('login') in dest_by_login:
-                    check_dest_id = dest_by_login[rec['login']]
-                elif model == 'product.template' and rec.get('default_code') in dest_by_code:
-                    check_dest_id = dest_by_code[rec['default_code']]
+                    elif rec.get('name') and rec['name'] in dest_by_name:
+                        check_dest_id = dest_by_name[rec['name']]
+                
+                elif model == 'res.users':
+                    if rec.get('login') and rec['login'] in dest_by_login:
+                        check_dest_id = dest_by_login[rec['login']]
+                
+                elif model == 'product.template':
+                    if rec.get('default_code') and rec['default_code'] in dest_by_code:
+                        check_dest_id = dest_by_code[rec['default_code']]
+                    elif rec.get('name') and rec['name'] in dest_by_name:
+                        check_dest_id = dest_by_name[rec['name']]
                 
                 if check_dest_id:
-                    # Existe déjà, copier juste l'external_id
-                    self.copier_external_id_rapide(model, check_dest_id, source_id)
+                    # Existe déjà, copier juste l'external_id si pas déjà fait
+                    if ext_id:
+                        ext_key = f"{ext_id['module']}.{ext_id['name']}"
+                        if ext_key not in self.cache_ext_id_dest:
+                            self.copier_external_id_rapide(model, check_dest_id, source_id)
+                    
                     mapping[source_id] = check_dest_id
                     existant += 1
                     if MODE_TEST:
@@ -258,8 +279,11 @@ class MigrationOptimisee:
                         self.copier_external_id_rapide(model, dest_id, source_id)
                         
                         # Mettre à jour les index pour éviter doublons dans le même lot
-                        if model == 'account.account' and rec.get('code'):
-                            dest_by_code[rec['code']] = dest_id
+                        if model == 'account.account':
+                            if rec.get('code'):
+                                dest_by_code[rec['code']] = dest_id
+                            if rec.get('name'):
+                                dest_by_name[rec['name']] = dest_id
                         elif model == 'account.journal' and rec.get('code'):
                             dest_by_code[rec['code']] = dest_id
                         elif model == 'res.partner':
@@ -267,10 +291,15 @@ class MigrationOptimisee:
                                 dest_by_ref[rec['ref']] = dest_id
                             if rec.get('email'):
                                 dest_by_email[rec['email']] = dest_id
+                            if rec.get('name'):
+                                dest_by_name[rec['name']] = dest_id
                         elif model == 'res.users' and rec.get('login'):
                             dest_by_login[rec['login']] = dest_id
-                        elif model == 'product.template' and rec.get('default_code'):
-                            dest_by_code[rec['default_code']] = dest_id
+                        elif model == 'product.template':
+                            if rec.get('default_code'):
+                                dest_by_code[rec['default_code']] = dest_id
+                            if rec.get('name'):
+                                dest_by_name[rec['name']] = dest_id
                         
                         mapping[source_id] = dest_id
                         dest_ids.add(dest_id)
