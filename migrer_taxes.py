@@ -7,13 +7,20 @@ import os
 import json
 from pathlib import Path
 
+# AFFICHER IMMÉDIATEMENT
+print("="*70)
+print("DEMARRAGE: MIGRATION TAXES")
+print("="*70)
+print("Initialisation... Chargement des modules (10-15 secondes)")
+print("="*70)
+sys.stdout.flush()
+
 sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 
-print("="*70)
-print("MIGRATION: TAXES")
-print("="*70)
-
 from connexion_double_v19 import ConnexionDoubleV19
+
+print("OK - Modules charges")
+print("="*70)
 
 print("Connexion...")
 conn = ConnexionDoubleV19()

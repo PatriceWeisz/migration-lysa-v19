@@ -100,6 +100,10 @@ python verifier_mappings_existants.py
 **RESPECTER CET ORDRE :**
 
 1. **Utilisateurs** EN PREMIER (requis par projets, produits, équipes)
+   - ⚠️ Les utilisateurs inactifs sont créés en mode ACTIF
+   - Ils seront désactivés à la fin avec `finaliser_utilisateurs.py`
+   - Voir `NOTE_UTILISATEURS_INACTIFS.md` pour les détails
+
 2. **Plans analytiques** avant **Comptes analytiques**
 3. **Entrepôts** avant **Emplacements** et **Types d'opérations**
 4. **Partenaires** et **Produits** avant **Transactions**
@@ -112,8 +116,10 @@ python migrer_utilisateurs.py    # Trop tard!
 
 **Exemple de bon ordre :**
 ```bash
-python migrer_utilisateurs.py    # ✅ D'abord les utilisateurs
+python migrer_utilisateurs.py    # ✅ D'abord les utilisateurs (TOUS actifs)
 python migrer_projets.py          # ✅ Puis les projets
+# ... toute la migration ...
+python finaliser_utilisateurs.py  # ✅ À LA FIN: désactiver les inactifs
 ```
 
 ---

@@ -3,17 +3,21 @@
 """MIGRATION PROJETS"""
 import sys, os, json
 from pathlib import Path
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 
+# AFFICHER IMMÉDIATEMENT
 print("="*70)
-print("MIGRATION: PROJETS")
+print("DEMARRAGE: MIGRATION PROJETS")
 print("="*70)
-print("Chargement des modules... (10-15 secondes)")
+print("Initialisation... Chargement des modules (10-15 secondes)")
 print("="*70)
+sys.stdout.flush()
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 
 from connexion_double_v19 import ConnexionDoubleV19
 
 print("OK - Modules charges")
+print("="*70)
 
 conn = ConnexionDoubleV19()
 if not conn.connecter_tout():
@@ -70,8 +74,8 @@ for idx, rec in enumerate(src, 1):
         data = {k: v for k, v in rec.items() if k != 'id' and v not in (None, False, '')}
         
         # Traiter user_id AVANT de nettoyer les many2one
-        # NOTE: Les utilisateurs inactifs ne sont pas migrés,
-        # on utilise l'admin (ID 2) par défaut
+        # NOTE: Tous les utilisateurs (actifs ET inactifs) sont migrés
+        # en mode actif pour permettre les dépendances
         src_user_id = rec.get('user_id')
         if src_user_id:
             if isinstance(src_user_id, (list, tuple)):
@@ -81,8 +85,9 @@ for idx, rec in enumerate(src, 1):
             if str(src_user_id) in user_mapping:
                 data['user_id'] = user_mapping[str(src_user_id)]
             else:
-                # Utilisateur pas migré (probablement inactif) -> admin
+                # Utilisateur pas migré -> admin par défaut
                 data['user_id'] = 2
+                print(f"  -> ATTENTION: user_id {src_user_id} non mappé, utilisation admin")
         else:
             data['user_id'] = 2
         

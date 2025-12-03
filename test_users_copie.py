@@ -100,14 +100,8 @@ for idx, rec in enumerate(src, 1):
     if idx % 10 == 0 or idx == len(src):
         afficher(f"Traitement {idx}/{len(src)}...")
     
-    # Skip système et logins invalides
-    if login in ['admin', '__export__', 'portal', 'default', 'portaltemplate']:
-        skipped += 1
-        continue
-    
-    # Skip si login n'est pas un email valide
-    if '@' not in login:
-        afficher(f"  -> SKIP (login invalide: {login})")
+    # Skip système
+    if login in ['admin', '__export__', 'portal']:
         skipped += 1
         continue
     
@@ -148,7 +142,6 @@ for idx, rec in enumerate(src, 1):
             if isinstance(company_id, (list, tuple)):
                 data['company_id'] = company_id[0]
         
-        # Créer l'utilisateur
         dest_id = conn.executer_destination('res.users', 'create', data)
         
         # Assigner groupes
@@ -171,30 +164,7 @@ for idx, rec in enumerate(src, 1):
         nouveaux += 1
         
     except Exception as e:
-        error_str = str(e).lower()
-        
-        # Si limite d'emails, l'user EST créé quand même !
-        if 'daily limit' in error_str:
-            afficher(f"  -> Limite emails (user créé, recherche...)")
-            try:
-                # Chercher l'utilisateur qui vient d'être créé
-                found = conn.executer_destination('res.users', 'search_read',
-                                                 [('login', '=', login)],
-                                                 fields=['id'])
-                if found:
-                    dest_id = found[0]['id']
-                    mapping[rec['id']] = dest_id
-                    dst_index[login] = dest_id
-                    nouveaux += 1
-                    afficher(f"  -> CREE (ID: {dest_id}) sans email")
-                else:
-                    afficher(f"  -> Erreur: user non trouvé")
-            except:
-                afficher(f"  -> Erreur recherche")
-        elif 'duplicate' in error_str or 'already exists' in error_str:
-            afficher(f"  -> User existe deja")
-        else:
-            afficher(f"  -> ERREUR creation")
+        afficher(f"ERREUR {login}: {str(e)[:60]}")
 
 # Sauvegarder
 with open(mapping_file, 'w') as f:

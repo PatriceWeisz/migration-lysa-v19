@@ -3,17 +3,21 @@
 """MIGRATION PLANS ANALYTIQUES"""
 import sys, os, json
 from pathlib import Path
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 
+# AFFICHER IMMÉDIATEMENT
 print("="*70)
-print("MIGRATION: PLANS ANALYTIQUES")
+print("DEMARRAGE: MIGRATION PLANS ANALYTIQUES")
 print("="*70)
-print("Chargement des modules... (10-15 secondes)")
+print("Initialisation... Chargement des modules (10-15 secondes)")
 print("="*70)
+sys.stdout.flush()
+
+sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', buffering=1)
 
 from connexion_double_v19 import ConnexionDoubleV19
 
 print("OK - Modules charges")
+print("="*70)
 
 conn = ConnexionDoubleV19()
 if not conn.connecter_tout():
