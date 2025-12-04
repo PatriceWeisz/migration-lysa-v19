@@ -24,8 +24,8 @@ SOURCE_CONFIG = {
 # CONFIGURATION BASE DESTINATION (ODOO V19) - SAAS
 # ============================================================================
 DEST_CONFIG_V19 = {
-    'URL': 'https://lysa-migration.odoo.com/',
-    'DB': 'lysa-migration',  # Base SaaS Odoo
+    'URL': 'https://lysa-migration-2.odoo.com/',
+    'DB': 'lysa-migration-2',  # Base SaaS Odoo (NOUVELLE BASE PROPRE)
     'USER': 'support@senedoo.com',
     'PASS': 'senedoo@2025',
     'VERSION': 'v19',  # Version Odoo destination
