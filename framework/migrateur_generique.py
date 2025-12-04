@@ -190,7 +190,40 @@ class MigrateurGenerique:
             if value is None or value is False or value == '':
                 continue
             
-            # Gérer les relations many2one
+            # PRIORITÉ 1: Gérer les champs One2many spéciaux (AVANT les autres)
+            if field in ['invoice_repartition_line_ids', 'refund_repartition_line_ids']:
+                if isinstance(value, list) and value and isinstance(value[0], int):
+                    # Lire les lignes de répartition en SOURCE
+                    try:
+                        lines = self.conn.executer_source(
+                            'account.tax.repartition.line',
+                            'read',
+                            value,
+                            ['repartition_type', 'factor_percent', 'account_id', 'use_in_tax_closing']
+                        )
+                        
+                        # Transformer en commandes Odoo (0, 0, {...})
+                        commands = []
+                        for line in lines:
+                            line_data = {
+                                'repartition_type': line.get('repartition_type', 'tax'),
+                                'factor_percent': line.get('factor_percent', 100.0),
+                                'use_in_tax_closing': line.get('use_in_tax_closing', False),
+                            }
+                            
+                            # Account_id (optionnel, on le skip pour l'instant)
+                            # TODO: mapper l'account_id
+                            
+                            commands.append((0, 0, line_data))
+                        
+                        if commands:
+                            data[field] = commands
+                    except Exception as e:
+                        # Si erreur, on skip ce champ complètement
+                        pass
+                continue  # Passer au champ suivant
+            
+            # PRIORITÉ 2: Gérer les relations many2one
             if field in relations_config and isinstance(value, (list, tuple)):
                 mapped_id = self.mapper_relation(field, value)
                 if mapped_id:
@@ -203,10 +236,9 @@ class MigrateurGenerique:
             elif isinstance(value, (list, tuple)) and len(value) == 2:
                 data[field] = value[0]
             
-            # Relations many2many ou one2many (liste d'IDs)
+            # Relations many2many ou one2many (liste d'IDs) - autres champs
             elif isinstance(value, list) and value and isinstance(value[0], int):
-                # TODO: mapper les IDs de la liste
-                # Pour l'instant on skip
+                # Autres champs One2many/Many2many: skip pour l'instant
                 pass
             
             # Valeurs simples
