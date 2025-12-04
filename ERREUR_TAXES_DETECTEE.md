@@ -1,5 +1,8 @@
 # 🔍 ERREUR TAXES DÉTECTÉE
 
+**Date détection : 4 décembre 2025, 01:15**  
+**Statut : ✅ CORRIGÉE le 4 décembre 2025, 02:45**
+
 ## 📋 Résumé de la Session de Test
 
 **Date :** 4 décembre 2025, 01:13  

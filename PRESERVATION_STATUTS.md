@@ -1,5 +1,9 @@
 # ✅ PRÉSERVATION DES STATUTS - GARANTIE D'INTÉGRITÉ
 
+**Date création : 4 décembre 2025**  
+**Dernière mise à jour : 4 décembre 2025, 01:00**  
+**Statut : VALIDÉ**
+
 ## 🎯 Question Critique
 
 **"Est-ce qu'une facture comptabilisée restera comptabilisée après migration ?"**

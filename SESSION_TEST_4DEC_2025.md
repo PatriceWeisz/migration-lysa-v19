@@ -1,5 +1,9 @@
 # 📋 SESSION TEST - 4 Décembre 2025
 
+**Date session : 4 décembre 2025, 01:00-03:00**  
+**Dernière mise à jour : 4 décembre 2025, 03:00**  
+**Statut : À JOUR - Document principal de référence**
+
 ## 🎯 CONTEXTE
 
 **Base test :** lysa-migration-2.odoo.com (NOUVELLE base propre)  
